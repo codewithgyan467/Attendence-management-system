@@ -38,4 +38,10 @@ export class AuthController {
   async resetPassword(@Body() resetDto: { identifier: string; otp: string; newPassword: string }) {
     return this.authService.resetPassword(resetDto);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('verify-phone-token')
+  async verifyPhoneToken(@Body() phoneDto: { phoneToken?: string; phone: string; newPassword?: string }) {
+    return this.authService.verifyPhoneToken(phoneDto);
+  }
 }

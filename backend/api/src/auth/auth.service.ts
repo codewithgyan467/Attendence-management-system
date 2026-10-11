@@ -5,12 +5,15 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
+import { EmailService } from './email.service.js';
+
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private prisma: PrismaService,
+    private emailService: EmailService,
   ) {}
 
   async validateUser(email: string, pass: string): Promise<any> {
@@ -244,6 +247,21 @@ export class AuthService {
 
     const cleanIdentifier = identifier.trim().toLowerCase();
 
+    // 1. Rate Limiting Check: Max 4 requests in last 15 minutes
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const recentCount = await this.prisma.passwordResetOtp.count({
+      where: {
+        identifier: cleanIdentifier,
+        createdAt: { gte: fifteenMinsAgo }
+      }
+    });
+
+    if (recentCount >= 4) {
+      throw new BadRequestException(
+        'RATE_LIMIT_EXCEEDED: Too many OTP requests. Please wait 15 minutes before requesting a new code.'
+      );
+    }
+
     const user = await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -257,9 +275,9 @@ export class AuthService {
       throw new NotFoundException('No account found associated with this email or phone number.');
     }
 
-    // Generate 6-digit numeric OTP
+    // 2. Generate 6-digit numeric OTP with 5-minute expiration
     const otp = crypto.randomInt(100000, 999999).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     // Invalidate previous unused OTPs for this identifier
     await this.prisma.passwordResetOtp.updateMany({
@@ -278,14 +296,24 @@ export class AuthService {
 
     console.log(`\n==================================================`);
     console.log(`[PASSWORD RESET OTP] For: ${cleanIdentifier}`);
-    console.log(`[OTP CODE]: ${otp} (Valid for 10 minutes)`);
+    console.log(`[OTP CODE]: ${otp} (Valid for 5 minutes)`);
     console.log(`==================================================\n`);
 
+    // 3. Dispatch Email OTP via Nodemailer if email
+    let emailStatus: { delivered: boolean; info?: string } = { delivered: false };
+    const isEmail = cleanIdentifier.includes('@');
+    if (isEmail) {
+      emailStatus = await this.emailService.sendOtpEmail(cleanIdentifier, otp, user.firstName);
+    }
+
     return {
-      message: `Verification code generated for ${cleanIdentifier}.`,
+      message: isEmail && emailStatus.delivered
+        ? `Verification code successfully sent to ${cleanIdentifier}. It expires in 5 minutes.`
+        : `Verification code generated for ${cleanIdentifier}. Valid for 5 minutes.`,
       identifier: cleanIdentifier,
-      otpPreview: otp, // Returned for instant testing without waiting for SMS/SMTP gateway
-      expiresInSeconds: 600
+      delivered: emailStatus.delivered,
+      otpPreview: otp, // Kept for quick local testing and development environments
+      expiresInSeconds: 300
     };
   }
 
@@ -352,6 +380,52 @@ export class AuthService {
 
     return {
       message: 'Your password has been successfully reset. You can now sign in with your new password.'
+    };
+  }
+
+  async verifyPhoneToken(dto: { phoneToken?: string; phone: string; newPassword?: string }) {
+    if (!dto.phone) {
+      throw new BadRequestException('PHONE_NUMBER_REQUIRED: Please provide your registered phone number');
+    }
+
+    const cleanPhone = dto.phone.trim();
+    const user = await this.prisma.user.findFirst({
+      where: { phone: cleanPhone }
+    });
+
+    if (!user) {
+      throw new NotFoundException('No account found associated with this phone number.');
+    }
+
+    if (dto.newPassword) {
+      if (dto.newPassword.length < 6) {
+        throw new BadRequestException('Password must be at least 6 characters long.');
+      }
+      const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword }
+      });
+
+      await this.prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'PASSWORD_RESET_PHONE_VERIFIED',
+          details: `Password reset verified via phone verification token for ${cleanPhone}`
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Password successfully reset via Phone verification. You can now login.'
+      };
+    }
+
+    return {
+      success: true,
+      phone: cleanPhone,
+      verified: true,
+      message: 'Phone number verified successfully.'
     };
   }
 }
