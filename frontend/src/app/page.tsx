@@ -38,7 +38,6 @@ export default function LoginPage() {
   const [forgotOtp, setForgotOtp] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
-  const [otpPreviewMsg, setOtpPreviewMsg] = useState<string | null>(null);
   const [forgotLoading, setForgotLoading] = useState(false);
 
   // General notification/error states
@@ -261,7 +260,6 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
-    setOtpPreviewMsg(null);
     setForgotLoading(true);
 
     try {
@@ -277,10 +275,7 @@ export default function LoginPage() {
       }
 
       setForgotStep(2);
-      setSuccessMsg(data.message || 'Verification code generated.');
-      if (data.otpPreview) {
-        setOtpPreviewMsg(`Test OTP Code: ${data.otpPreview}`);
-      }
+      setSuccessMsg(data.message || 'Verification code sent to your email.');
     } catch (err: any) {
       setError(err.message || 'Failed to request OTP.');
     } finally {
@@ -322,7 +317,6 @@ export default function LoginPage() {
       setForgotOtp('');
       setForgotNewPassword('');
       setForgotConfirmPassword('');
-      setOtpPreviewMsg(null);
     } catch (err: any) {
       setError(err.message || 'Failed to reset password');
     } finally {
@@ -516,7 +510,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setViewMode('login'); setError(''); setSuccessMsg(''); stopCamera(); }}
-                  className={`text-sm font-bold pb-2 transition-all border-b-2 ${
+                  className={`text-xs sm:text-sm font-bold pb-2 transition-all border-b-2 text-center ${
                     viewMode === 'login'
                       ? 'border-sky-400 text-white'
                       : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -527,24 +521,24 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setViewMode('register'); setError(''); setSuccessMsg(''); }}
-                  className={`text-sm font-bold pb-2 transition-all border-b-2 ${
+                  className={`text-xs sm:text-sm font-bold pb-2 transition-all border-b-2 text-center truncate ${
                     viewMode === 'register'
                       ? 'border-indigo-400 text-white'
                       : 'border-transparent text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Student Self-Registration
+                  <span className="sm:inline hidden">Student </span>Registration
                 </button>
                 <button
                   type="button"
                   onClick={() => { setViewMode('forgot'); setError(''); setSuccessMsg(''); stopCamera(); }}
-                  className={`text-sm font-bold pb-2 transition-all border-b-2 ${
+                  className={`text-xs sm:text-sm font-bold pb-2 transition-all border-b-2 text-center truncate ${
                     viewMode === 'forgot'
                       ? 'border-purple-400 text-white'
                       : 'border-transparent text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Forgot Password?
+                  Reset <span className="sm:inline hidden">Password</span>
                 </button>
               </div>
 
@@ -559,21 +553,6 @@ export default function LoginPage() {
                 <div className="mb-4 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-xs font-medium flex items-center gap-2">
                   <span>✅</span>
                   <span>{successMsg}</span>
-                </div>
-              )}
-              {otpPreviewMsg && (
-                <div className="mb-4 p-3 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-xs font-semibold flex items-center justify-between">
-                  <span>🔑 {otpPreviewMsg}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const code = otpPreviewMsg.replace(/\D/g, '');
-                      setForgotOtp(code);
-                    }}
-                    className="text-[11px] underline text-sky-300 font-bold"
-                  >
-                    Auto-Fill
-                  </button>
                 </div>
               )}
 
@@ -963,31 +942,50 @@ export default function LoginPage() {
                     </p>
                   </div>
 
-                  {/* Method Selector Tabs */}
-                  <div className="grid grid-cols-2 gap-2 p-1 bg-white/5 rounded-xl border border-white/10 mb-4">
-                    <button
-                      type="button"
-                      onClick={() => { setForgotMethod('email'); setForgotStep(1); }}
-                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
-                        forgotMethod === 'email'
-                          ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      📧 Email OTP (Nodemailer)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setForgotMethod('phone_email'); }}
-                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
-                        forgotMethod === 'phone_email'
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      📱 Phone.Email Verification
-                    </button>
-                  </div>
+                  {/* Method Selector Tabs (Only on Step 1) */}
+                  {forgotStep === 1 && (
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-white/5 rounded-xl border border-white/10 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => { setForgotMethod('email'); }}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
+                          forgotMethod === 'email'
+                            ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        📧 Email OTP
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setForgotMethod('phone_email'); }}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
+                          forgotMethod === 'phone_email'
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        📱 Phone.Email
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Step 2 Recipient Badge */}
+                  {forgotStep === 2 && forgotMethod === 'email' && (
+                    <div className="mb-4 p-3 rounded-xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Verification Code Sent To</div>
+                        <div className="text-xs font-semibold text-white truncate max-w-[190px] sm:max-w-xs">{forgotIdentifier}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setForgotStep(1); setError(''); setSuccessMsg(''); }}
+                        className="text-xs text-sky-400 hover:text-sky-300 font-bold underline cursor-pointer"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  )}
 
                   {/* METHOD 1: EMAIL OTP */}
                   {forgotMethod === 'email' && (
@@ -1007,7 +1005,7 @@ export default function LoginPage() {
                               onChange={(e) => setForgotIdentifier(e.target.value)}
                             />
                             <p className="text-[11px] text-slate-500 mt-1">
-                              A 6-digit code will be sent to your inbox. Valid for 5 minutes.
+                              A 6-digit verification code will be sent to your inbox. Valid for 5 minutes.
                             </p>
                           </div>
 
@@ -1087,6 +1085,17 @@ export default function LoginPage() {
                               className="shimmer-btn glass-btn flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
                             >
                               {forgotLoading ? 'Verifying...' : 'Set New Password & Sign In'}
+                            </button>
+                          </div>
+
+                          <div className="text-center pt-2">
+                            <button
+                              type="button"
+                              disabled={forgotLoading}
+                              onClick={handleRequestOtp}
+                              className="text-xs text-slate-400 hover:text-sky-300 transition-colors"
+                            >
+                              Didn't receive email? <span className="underline font-bold text-sky-400">Resend OTP</span>
                             </button>
                           </div>
                         </form>

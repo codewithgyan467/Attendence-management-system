@@ -300,19 +300,17 @@ export class AuthService {
     console.log(`==================================================\n`);
 
     // 3. Dispatch Email OTP via Nodemailer if email
-    let emailStatus: { delivered: boolean; info?: string } = { delivered: false };
     const isEmail = cleanIdentifier.includes('@');
     if (isEmail) {
-      emailStatus = await this.emailService.sendOtpEmail(cleanIdentifier, otp, user.firstName);
+      await this.emailService.sendOtpEmail(cleanIdentifier, otp, user.firstName);
     }
 
     return {
-      message: isEmail && emailStatus.delivered
-        ? `Verification code successfully sent to ${cleanIdentifier}. It expires in 5 minutes.`
-        : `Verification code generated for ${cleanIdentifier}. Valid for 5 minutes.`,
+      success: true,
+      message: isEmail
+        ? `Verification code has been sent to ${cleanIdentifier}. Please check your inbox or spam folder.`
+        : `Verification code generated for phone ${cleanIdentifier}. Valid for 5 minutes.`,
       identifier: cleanIdentifier,
-      delivered: emailStatus.delivered,
-      otpPreview: otp, // Kept for quick local testing and development environments
       expiresInSeconds: 300
     };
   }
