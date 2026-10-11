@@ -86,7 +86,84 @@ export class AcademicService {
   }
 
   async getClassrooms() {
-    return this.prisma.classroom.findMany();
+    return this.prisma.classroom.findMany({
+      include: {
+        department: true,
+        esp32Device: true,
+      },
+      orderBy: { name: 'asc' }
+    });
+  }
+
+  async updateClassroom(id: string, data: {
+    name?: string;
+    latitude?: number;
+    longitude?: number;
+    allowedRadiusMeters?: number;
+    maxGpsAccuracy?: number;
+    building?: string;
+    floor?: string;
+  }) {
+    return this.prisma.classroom.update({
+      where: { id },
+      data: {
+        ...(data.name && { name: data.name }),
+        ...(data.latitude !== undefined && { latitude: Number(data.latitude) }),
+        ...(data.longitude !== undefined && { longitude: Number(data.longitude) }),
+        ...(data.allowedRadiusMeters !== undefined && { allowedRadiusMeters: Number(data.allowedRadiusMeters) }),
+        ...(data.maxGpsAccuracy !== undefined && { maxGpsAccuracy: Number(data.maxGpsAccuracy) }),
+        ...(data.building !== undefined && { building: data.building }),
+        ...(data.floor !== undefined && { floor: data.floor }),
+      }
+    });
+  }
+
+  async createClassroom(data: {
+    name: string;
+    departmentId?: string;
+    latitude?: number;
+    longitude?: number;
+    allowedRadiusMeters?: number;
+    maxGpsAccuracy?: number;
+    building?: string;
+    floor?: string;
+  }) {
+    let deptId = data.departmentId;
+    if (!deptId) {
+      const firstDept = await this.prisma.department.findFirst();
+      if (firstDept) {
+        deptId = firstDept.id;
+      } else {
+        const newDept = await this.prisma.department.create({
+          data: { name: 'General Engineering', institution: 'University Campus' }
+        });
+        deptId = newDept.id;
+      }
+    }
+
+    return this.prisma.classroom.create({
+      data: {
+        name: data.name,
+        departmentId: deptId,
+        latitude: data.latitude !== undefined ? Number(data.latitude) : 26.140537,
+        longitude: data.longitude !== undefined ? Number(data.longitude) : 91.656738,
+        allowedRadiusMeters: data.allowedRadiusMeters !== undefined ? Number(data.allowedRadiusMeters) : 100,
+        maxGpsAccuracy: data.maxGpsAccuracy !== undefined ? Number(data.maxGpsAccuracy) : 25,
+        building: data.building || 'Main Campus Block',
+        floor: data.floor || 'Ground',
+      }
+    });
+  }
+
+  async getRegistrationOptions() {
+    const departments = await this.prisma.department.findMany({
+      include: {
+        subjects: {
+          include: { sections: true }
+        }
+      }
+    });
+    return { departments };
   }
 
   // --- Deletions ---

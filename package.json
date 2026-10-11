@@ -18,5 +18,8 @@
   },
   "prisma": {
     "schema": "backend/api/prisma/schema.prisma"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5"
   }
 }

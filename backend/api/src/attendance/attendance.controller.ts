@@ -95,8 +95,11 @@ export class AttendanceController {
 
   @Roles('ADMIN')
   @Post('admin/override')
-  async adminOverrideRecord(@Body() body: any) {
-    return this.attendanceService.adminOverrideRecord(body);
+  async adminOverrideRecord(@Request() req: any, @Body() body: any) {
+    return this.attendanceService.adminOverrideRecord({
+      ...body,
+      adminUserId: req.user.userId
+    });
   }
 
   @Roles('ADMIN')
@@ -116,5 +119,23 @@ export class AttendanceController {
   @Delete('admin/holidays/:id')
   async deleteHoliday(@Param('id') id: string) {
     return this.attendanceService.deleteHoliday(id);
+  }
+
+  // --- ESP32 Hardware & Offline Synchronization ---
+  @Post('hardware/beacon-challenge')
+  async getBeaconChallenge(@Body('deviceId') deviceId: string) {
+    if (!deviceId) throw new BadRequestException('deviceId is required');
+    return this.attendanceService.generateBeaconChallenge(deviceId);
+  }
+
+  @Post('sync-offline-batch')
+  async syncOfflineBatch(@Body() body: { events: Array<any> }) {
+    if (!body || !body.events) throw new BadRequestException('events array is required');
+    return this.attendanceService.syncOfflineBatch(body.events);
+  }
+
+  @Post('demo/start-live-session')
+  async startLiveDemoSession(@Body('studentProfileId') studentProfileId?: string) {
+    return this.attendanceService.startOrGetLiveDemoSession(studentProfileId);
   }
 }

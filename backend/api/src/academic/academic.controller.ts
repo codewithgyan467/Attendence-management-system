@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { AcademicService } from './academic.service.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/roles.guard.js';
@@ -49,6 +49,18 @@ export class AcademicController {
   @Get('classrooms')
   getClassrooms() {
     return this.academicService.getClassrooms();
+  }
+
+  @Roles('ADMIN')
+  @Put('classrooms/:id')
+  updateClassroom(@Param('id') id: string, @Body() body: any) {
+    return this.academicService.updateClassroom(id, body);
+  }
+
+  @Roles('ADMIN')
+  @Post('classrooms')
+  createClassroom(@Body() body: any) {
+    return this.academicService.createClassroom(body);
   }
 
   @Roles('ADMIN')

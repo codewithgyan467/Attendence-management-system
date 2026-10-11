@@ -116,9 +116,14 @@ async function main() {
     data: { name: 'CSE Lecture Hall 1', building: 'CSE Department Building', floor: 'Ground', departmentId: cseDept.id, latitude: 26.1415, longitude: 91.6617, allowedRadiusMeters: 100, maxGpsAccuracy: 25 }
   });
   
-  const mcaLab = await prisma.classroom.findFirst({ where: { name: 'MCA Computer Lab' } }) || await prisma.classroom.create({
-    data: { name: 'MCA Computer Lab', building: 'MCA Department Block', floor: '1st', departmentId: mcaDept.id, latitude: 26.1412, longitude: 91.6620, allowedRadiusMeters: 100, maxGpsAccuracy: 25 }
-  });
+  const mcaLab = await prisma.classroom.findFirst({ where: { name: 'MCA Computer Lab' } })
+    ? await prisma.classroom.update({
+        where: { id: (await prisma.classroom.findFirst({ where: { name: 'MCA Computer Lab' } }))!.id },
+        data: { latitude: 26.140537, longitude: 91.656738, allowedRadiusMeters: 500, maxGpsAccuracy: 50 }
+      })
+    : await prisma.classroom.create({
+        data: { name: 'MCA Computer Lab', building: 'MCA Department Block', floor: '1st', departmentId: mcaDept.id, latitude: 26.140537, longitude: 91.656738, allowedRadiusMeters: 500, maxGpsAccuracy: 50 }
+      });
 
   // Subjects & Sections
   const cs301 = await prisma.subject.upsert({
@@ -163,7 +168,42 @@ async function main() {
     }
   }
 
-  console.log('AEC Seeding complete! ✨');
+  // ESP32 Binding to MCA Computer Lab
+  const espDeviceDelegate = (prisma as any).eSP32Device || (prisma as any).esp32Device;
+  await espDeviceDelegate.upsert({
+    where: { classroomId: mcaLab.id },
+    update: {
+      deviceId: 'ESP32-AEC-MCA-LAB1',
+      publicKey: 'aec_secret_hmac_key_2026_xyz987',
+      status: 'ACTIVE'
+    },
+    create: {
+      classroomId: mcaLab.id,
+      deviceId: 'ESP32-AEC-MCA-LAB1',
+      publicKey: 'aec_secret_hmac_key_2026_xyz987',
+      status: 'ACTIVE'
+    }
+  });
+
+  // Ensure active class session for live testing at user coordinates
+  const subhrajyotiProf = await prisma.facultyProfile.findUnique({ where: { userId: subhrajyotiMca.id } });
+  if (subhrajyotiProf) {
+    const existingActive = await prisma.classSession.findFirst({
+      where: { classroomId: mcaLab.id, status: 'ACTIVE' }
+    });
+    if (!existingActive) {
+      await prisma.classSession.create({
+        data: {
+          classroomId: mcaLab.id,
+          facultyProfileId: subhrajyotiProf.id,
+          status: 'ACTIVE',
+          startTime: new Date()
+        }
+      });
+    }
+  }
+
+  console.log('AEC Seeding complete! ✨ GPS Set to 26.140537, 91.656738 & Active Session Ready.');
 }
 
 main()

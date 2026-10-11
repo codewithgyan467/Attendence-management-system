@@ -11,6 +11,7 @@ generator client {
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
+  phone     String?  @unique
   password  String
   firstName String
   lastName  String
@@ -205,8 +206,17 @@ model AttendanceRecord {
   latitude            Float?
   longitude           Float?
   
+  notes               String?
+  riskFlag            String?
+  
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
+
+  @@unique([studentProfileId, classSessionId])
+  @@index([studentProfileId])
+  @@index([classSessionId])
+  @@index([markedAt])
+  @@index([status])
 }
 
 model FaceProfile {
@@ -250,6 +260,9 @@ model AuditLog {
   action      String
   details     String
   createdAt   DateTime @default(now())
+
+  @@index([action])
+  @@index([userId])
 }
 
 model Holiday {
@@ -259,5 +272,17 @@ model Holiday {
   description String?
   createdAt   DateTime @default(now())
 }
+
+model PasswordResetOtp {
+  id         String   @id @default(uuid())
+  identifier String   // email or phone
+  otp        String
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([identifier])
+}
+
 
 

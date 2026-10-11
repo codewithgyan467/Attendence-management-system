@@ -19,7 +19,16 @@ export default function AdminDashboard() {
   const [simDay, setSimDay] = useState<number | null>(null);
   const [simTime, setSimTime] = useState<string | null>(null);
   const [simChoice, setSimChoice] = useState('live');
-  const [activeTab, setActiveTab] = useState<'overview' | 'override' | 'holidays'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'override' | 'holidays' | 'classrooms'>('overview');
+
+  // Classrooms & Geofence state
+  const [classrooms, setClassrooms] = useState<any[]>([]);
+  const [editingClassroomId, setEditingClassroomId] = useState<string | null>(null);
+  const [editRoomName, setEditRoomName] = useState('');
+  const [editRoomBuilding, setEditRoomBuilding] = useState('');
+  const [editRoomLat, setEditRoomLat] = useState<number | string>('');
+  const [editRoomLng, setEditRoomLng] = useState<number | string>('');
+  const [editRoomRadius, setEditRoomRadius] = useState<number | string>(100);
 
   // Form states
   const [holidayTitle, setHolidayTitle] = useState('');
@@ -35,17 +44,19 @@ export default function AdminDashboard() {
       if (time !== null) params.append('simulateTime', time);
       params.append('semester', '1');
 
-      const [statsRes, schedRes, recordsRes, holidaysRes] = await Promise.all([
+      const [statsRes, schedRes, recordsRes, holidaysRes, classroomsRes] = await Promise.all([
         fetch(`${API_URL}/reports/global`, { headers }),
         fetch(`${API_URL}/attendance/live-schedule?${params.toString()}`, { headers }),
         fetch(`${API_URL}/attendance/admin/records`, { headers }),
-        fetch(`${API_URL}/attendance/admin/holidays`, { headers })
+        fetch(`${API_URL}/attendance/admin/holidays`, { headers }),
+        fetch(`${API_URL}/academic/classrooms`, { headers })
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
       if (schedRes.ok) setScheduleData(await schedRes.json());
       if (recordsRes.ok) setAttendanceRecords(await recordsRes.json());
       if (holidaysRes.ok) setHolidays(await holidaysRes.json());
+      if (classroomsRes.ok) setClassrooms(await classroomsRes.json());
     } catch (err) {
       console.error('Failed to fetch admin data:', err);
     }
@@ -127,6 +138,83 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleStartEditClassroom = (c?: any) => {
+    if (c) {
+      setEditingClassroomId(c.id);
+      setEditRoomName(c.name);
+      setEditRoomBuilding(c.building || '');
+      setEditRoomLat(c.latitude || '');
+      setEditRoomLng(c.longitude || '');
+      setEditRoomRadius(c.allowedRadiusMeters || 100);
+    } else {
+      setEditingClassroomId('NEW');
+      setEditRoomName('');
+      setEditRoomBuilding('');
+      setEditRoomLat('');
+      setEditRoomLng('');
+      setEditRoomRadius(100);
+    }
+  };
+
+  const handleDetectCurrentGPS = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation not supported by this browser');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setEditRoomLat(Number(pos.coords.latitude.toFixed(6)));
+        setEditRoomLng(Number(pos.coords.longitude.toFixed(6)));
+        setActionMessage('Auto-detected device GPS coordinates successfully!');
+        setTimeout(() => setActionMessage(''), 3000);
+      },
+      (err) => {
+        alert(`Failed to detect GPS: ${err.message}`);
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  const handleSaveClassroom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    try {
+      const payload = {
+        name: editRoomName,
+        building: editRoomBuilding,
+        latitude: Number(editRoomLat),
+        longitude: Number(editRoomLng),
+        allowedRadiusMeters: Number(editRoomRadius),
+      };
+
+      const isNew = editingClassroomId === 'NEW';
+      const url = isNew
+        ? `${API_URL}/academic/classrooms`
+        : `${API_URL}/academic/classrooms/${editingClassroomId}`;
+
+      const res = await fetch(url, {
+        method: isNew ? 'POST' : 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setActionMessage(`Classroom coordinates saved (${editRoomLat}, ${editRoomLng})!`);
+        setTimeout(() => setActionMessage(''), 4000);
+        setEditingClassroomId(null);
+        fetchData(token, simDay, simTime);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Failed to save classroom');
+      }
+    } catch (err) {
+      console.error('Save classroom error:', err);
+    }
+  };
+
   return (
     <div className="space-y-6 sm:space-y-8 pb-12">
       {/* Header */}
@@ -165,6 +253,14 @@ export default function AdminDashboard() {
             }`}
           >
             Holidays ({holidays.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('classrooms')}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              activeTab === 'classrooms' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Classrooms & GPS ({classrooms.length})
           </button>
         </div>
       </div>
@@ -424,6 +520,206 @@ export default function AdminDashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: CLASSROOMS & GPS GEOFENCE MANAGEMENT */}
+      {activeTab === 'classrooms' && (
+        <div className="space-y-6">
+          <div className="glass-panel rounded-2xl p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  <span>📍</span> Campus Classrooms & Dynamic GPS Geofence
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Configure coordinates and perimeter radius for any classroom, department, or university globally.
+                </p>
+              </div>
+              <button
+                onClick={() => handleStartEditClassroom()}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 text-white shadow-lg shadow-sky-500/20 transition-all flex items-center gap-2 self-start sm:self-auto"
+              >
+                <span>+</span> Add New Classroom
+              </button>
+            </div>
+
+            {/* Modal/Form for Editing Classroom Coordinates */}
+            {editingClassroomId && (
+              <form onSubmit={handleSaveClassroom} className="p-5 rounded-2xl bg-slate-950/80 border border-sky-400/30 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-sky-400">
+                    {editingClassroomId === 'NEW' ? 'Register New Classroom' : 'Edit Classroom Coordinates & Geofence'}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setEditingClassroomId(null)}
+                    className="text-xs text-slate-400 hover:text-white"
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">Room Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="MCA Computer Lab"
+                      value={editRoomName}
+                      onChange={(e) => setEditRoomName(e.target.value)}
+                      className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-900 border-white/10"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">Building</label>
+                    <input
+                      type="text"
+                      placeholder="MCA Department Block"
+                      value={editRoomBuilding}
+                      onChange={(e) => setEditRoomBuilding(e.target.value)}
+                      className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-900 border-white/10"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">Allowed Radius (Meters)</label>
+                    <input
+                      type="number"
+                      required
+                      min={10}
+                      max={5000}
+                      placeholder="100"
+                      value={editRoomRadius}
+                      onChange={(e) => setEditRoomRadius(e.target.value)}
+                      className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-900 border-white/10"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-slate-300 uppercase">Latitude</label>
+                      <span className="text-[10px] text-slate-400 font-mono">Current: 26.140537</span>
+                    </div>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      placeholder="26.140537"
+                      value={editRoomLat}
+                      onChange={(e) => setEditRoomLat(e.target.value)}
+                      className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-900 border-white/10"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-semibold text-slate-300 uppercase">Longitude</label>
+                      <span className="text-[10px] text-slate-400 font-mono">Current: 91.656738</span>
+                    </div>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      placeholder="91.656738"
+                      value={editRoomLng}
+                      onChange={(e) => setEditRoomLng(e.target.value)}
+                      className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-900 border-white/10"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleDetectCurrentGPS}
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 flex items-center justify-center gap-2"
+                  >
+                    <span>🎯</span> Auto-Detect My Current GPS Location
+                  </button>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setEditingClassroomId(null)}
+                      className="flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-medium bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 sm:flex-initial px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg"
+                    >
+                      Save Coordinates
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* Classrooms Table */}
+            <div className="overflow-x-auto rounded-2xl border border-white/10">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-white/[0.03] text-slate-400 uppercase text-[11px] border-b border-white/10">
+                  <tr>
+                    <th className="p-3.5 sm:p-4">Room & Campus</th>
+                    <th className="p-3.5 sm:p-4">GPS Coordinates</th>
+                    <th className="p-3.5 sm:p-4">Geofence Radius</th>
+                    <th className="p-3.5 sm:p-4">Hardware Device</th>
+                    <th className="p-3.5 sm:p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {classrooms.map((c) => (
+                    <tr key={c.id} className="hover:bg-white/[0.02]">
+                      <td className="p-3.5 sm:p-4 font-semibold text-white">
+                        {c.name}
+                        <span className="block text-[11px] text-slate-400 font-normal">
+                          {c.building ? `${c.building} (${c.floor || 'Ground'} Floor)` : 'Main Campus'}
+                        </span>
+                      </td>
+                      <td className="p-3.5 sm:p-4 font-mono text-sky-300">
+                        {c.latitude && c.longitude ? (
+                          <span>{c.latitude.toFixed(6)}, {c.longitude.toFixed(6)}</span>
+                        ) : (
+                          <span className="text-slate-500">Not Configured</span>
+                        )}
+                      </td>
+                      <td className="p-3.5 sm:p-4">
+                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                          {c.allowedRadiusMeters || 100} meters
+                        </span>
+                      </td>
+                      <td className="p-3.5 sm:p-4">
+                        {c.esp32Device ? (
+                          <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-sky-500/10 text-sky-300 border border-sky-500/25">
+                            {c.esp32Device.deviceId}
+                          </span>
+                        ) : (
+                          <span className="text-slate-500 text-xs">Simulated / None</span>
+                        )}
+                      </td>
+                      <td className="p-3.5 sm:p-4 text-right">
+                        <button
+                          onClick={() => handleStartEditClassroom(c)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 transition-colors"
+                        >
+                          Edit Coordinates
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {classrooms.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-400">
+                        No classrooms loaded.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
