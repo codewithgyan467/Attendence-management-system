@@ -1,1 +1,0 @@
-Hardware integration space reserved for future use.
