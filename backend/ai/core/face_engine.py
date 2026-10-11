@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 import base64
@@ -5,7 +6,11 @@ from typing import Dict, Tuple
 
 class FaceEngine:
     def __init__(self):
-        cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        local_model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models', 'haarcascade_frontalface_default.xml')
+        if os.path.exists(local_model_path):
+            cascade_path = local_model_path
+        else:
+            cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
         self.face_cascade = cv2.CascadeClassifier(cascade_path)
 
     def _decode_image(self, base64_string: str) -> np.ndarray:

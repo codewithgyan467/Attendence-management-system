@@ -19,3 +19,13 @@ services:
         generateValue: true
       - key: AI_SERVICE_URL
         sync: false
+
+  # FastAPI AI Microservice (OpenCV + Liveness)
+  - type: web
+    name: attendance-ai
+    runtime: docker
+    rootDir: backend/ai
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: PORT
+        value: 8000
