@@ -1,0 +1,255 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      String   @default("STUDENT")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  studentProfile StudentProfile?
+  facultyProfile FacultyProfile?
+  adminProfile   AdminProfile?
+  ticketMessages TicketMessage[]
+}
+
+// Enums are not supported in SQLite, treating them as strings in the application layer.
+
+model StudentProfile {
+  id           String @id @default(uuid())
+  userId       String @unique
+  user         User   @relation(fields: [userId], references: [id])
+  enrollmentNo String @unique
+  departmentId String?
+  semester     Int
+  status       String @default("ACTIVE")
+  
+  attendanceRecords AttendanceRecord[]
+  enrollments       Enrollment[]
+  faceProfile       FaceProfile?
+  feedbackTickets   FeedbackTicket[]
+}
+
+model FacultyProfile {
+  id           String @id @default(uuid())
+  userId       String @unique
+  user         User   @relation(fields: [userId], references: [id])
+  employeeId   String @unique
+  departmentId String?
+  
+  sessions     ClassSession[]
+  assignedClasses ClassAssignment[]
+}
+
+model AdminProfile {
+  id           String @id @default(uuid())
+  userId       String @unique
+  user         User   @relation(fields: [userId], references: [id])
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String
+  institution String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  subjects    Subject[]
+  classrooms  Classroom[]
+}
+
+model Subject {
+  id           String     @id @default(uuid())
+  name         String
+  code         String     @unique
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  
+  sections     Section[]
+}
+
+model AcademicTerm {
+  id          String   @id @default(uuid())
+  year        Int
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  isCurrent   Boolean  @default(false)
+
+  enrollments Enrollment[]
+  sessions    ClassSession[]
+  timetableEntries TimetableEntry[]
+}
+
+model Section {
+  id          String   @id @default(uuid())
+  name        String
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  
+  enrollments Enrollment[]
+  classAssignments ClassAssignment[]
+  timetableEntries TimetableEntry[]
+}
+
+model Enrollment {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  student          StudentProfile @relation(fields: [studentProfileId], references: [id])
+  sectionId        String
+  section          Section        @relation(fields: [sectionId], references: [id])
+  academicTermId   String?
+  academicTerm     AcademicTerm?  @relation(fields: [academicTermId], references: [id])
+  
+  @@unique([studentProfileId, sectionId, academicTermId])
+}
+
+model ClassAssignment {
+  id               String         @id @default(uuid())
+  facultyProfileId String
+  faculty          FacultyProfile @relation(fields: [facultyProfileId], references: [id])
+  sectionId        String
+  section          Section        @relation(fields: [sectionId], references: [id])
+}
+
+model Classroom {
+  id            String      @id @default(uuid())
+  name          String
+  departmentId  String
+  department    Department  @relation(fields: [departmentId], references: [id])
+  
+  latitude            Float?
+  longitude           Float?
+  allowedRadiusMeters Float?      @default(50)
+  maxGpsAccuracy      Float?     @default(20)
+  building            String?
+  floor               String?
+  
+  esp32Device         ESP32Device?
+  sessions            ClassSession[]
+  timetableEntries    TimetableEntry[]
+}
+
+model TimetableEntry {
+  id             String       @id @default(uuid())
+  academicTermId String
+  academicTerm   AcademicTerm @relation(fields: [academicTermId], references: [id])
+  sectionId      String
+  section        Section      @relation(fields: [sectionId], references: [id])
+  classroomId    String
+  classroom      Classroom    @relation(fields: [classroomId], references: [id])
+  
+  dayOfWeek      Int          // 0 = Sunday, 1 = Monday, etc.
+  startTime      String       // Format "HH:mm" e.g., "09:00"
+  endTime        String       // Format "HH:mm" e.g., "10:00"
+  subjectType    String       // e.g., "Theory", "Lab", "Bridge Course"
+  
+  sessions       ClassSession[]
+}
+
+model ESP32Device {
+  id          String    @id @default(uuid())
+  deviceId    String    @unique
+  publicKey   String
+  classroomId String    @unique
+  classroom   Classroom @relation(fields: [classroomId], references: [id])
+  status      String    @default("ACTIVE")
+}
+
+model ClassSession {
+  id               String         @id @default(uuid())
+  facultyProfileId String
+  faculty          FacultyProfile @relation(fields: [facultyProfileId], references: [id])
+  classroomId      String
+  classroom        Classroom      @relation(fields: [classroomId], references: [id])
+  academicTermId   String?
+  academicTerm     AcademicTerm?  @relation(fields: [academicTermId], references: [id])
+  timetableEntryId String?
+  timetableEntry   TimetableEntry? @relation(fields: [timetableEntryId], references: [id])
+
+  startTime        DateTime       @default(now())
+  endTime          DateTime?
+  status           String         @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED
+  
+  attendanceRecords AttendanceRecord[]
+  feedbackTickets   FeedbackTicket[]
+}
+
+model AttendanceRecord {
+  id                  String         @id @default(uuid())
+  eventId             String?        @unique // Optional idempotency key from client for offline queue
+  studentProfileId    String
+  student             StudentProfile @relation(fields: [studentProfileId], references: [id])
+  classSessionId      String
+  classSession        ClassSession   @relation(fields: [classSessionId], references: [id])
+  
+  status              String
+  markedAt            DateTime       @default(now())
+  verificationMethod  String
+  
+  faceScore           Float?
+  livenessScore       Float?
+  distanceMeters      Float?
+  gpsAccuracy         Float?
+  latitude            Float?
+  longitude           Float?
+  
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+model FaceProfile {
+  id               String         @id @default(uuid())
+  studentProfileId String         @unique
+  student          StudentProfile @relation(fields: [studentProfileId], references: [id])
+  faceTemplate     String         // Stored template/encoding string
+  imageUrl         String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model FeedbackTicket {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  student          StudentProfile @relation(fields: [studentProfileId], references: [id])
+  classSessionId   String?
+  classSession     ClassSession?  @relation(fields: [classSessionId], references: [id])
+  category         String
+  description      String
+  status           String         @default("OPEN") // OPEN, IN_REVIEW, RESOLVED, CLOSED
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  messages         TicketMessage[]
+}
+
+model TicketMessage {
+  id               String         @id @default(uuid())
+  ticketId         String
+  ticket           FeedbackTicket @relation(fields: [ticketId], references: [id])
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  message          String
+  createdAt        DateTime       @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  action      String
+  details     String
+  createdAt   DateTime @default(now())
+}
+
+

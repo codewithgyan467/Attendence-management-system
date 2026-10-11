@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Next.js & Build outputs
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Python / AI
+venv/
+*/venv/
+env/
+*/env/
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.egg-info/
+
+# Environment variables
+.env
+.env*.local
+.env.production
+.env.development
+*.env
+!.env.example
+
+# IDE & OS
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# SQLite / Local DBs
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Turborepo / Cache
+.turbo
+.cache/
+coverage/

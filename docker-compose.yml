@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: attendance_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: attendance_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    container_name: attendance_nestjs_api
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://admin:password123@postgres:5432/attendance_platform?schema=public
+      - JWT_SECRET=super_secret_jwt_key_for_dev
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ./services/ai
+      dockerfile: Dockerfile
+    container_name: attendance_ai_service
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -1,0 +1,17 @@
+{
+  "name": "attendance-platform",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "apps/admin",
+    "services/api",
+    "packages/models",
+    "packages/api-client"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=web",
+    "dev:admin": "npm run dev --workspace=admin",
+    "dev:api": "npm run start:dev --workspace=api"
+  }
+}
