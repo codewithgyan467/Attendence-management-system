@@ -24,6 +24,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               📊 Overview
             </Link>
             <Link 
+              href="/admin/dashboard/institutions" 
+              className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white/5 hover:bg-white/10 text-slate-200 border border-white/5 hover:border-white/15 transition-all whitespace-nowrap"
+            >
+              🏛️ Universities & Depts
+            </Link>
+            <Link 
               href="/admin/dashboard/timetable" 
               className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white/5 hover:bg-white/10 text-slate-200 border border-white/5 hover:border-white/15 transition-all whitespace-nowrap"
             >

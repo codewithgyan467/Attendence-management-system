@@ -5,15 +5,96 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class AcademicService {
   constructor(private prisma: PrismaService) {}
 
+  // --- Institutions ---
+  async getAllInstitutions() {
+    return (this.prisma as any).institution?.findMany({
+      orderBy: { name: 'asc' }
+    }) || [];
+  }
+
+  async createInstitution(data: {
+    name: string;
+    code: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
+    allowedRadiusMeters?: number;
+  }) {
+    return (this.prisma as any).institution.create({
+      data: {
+        name: data.name.trim(),
+        code: data.code.trim().toUpperCase(),
+        address: data.address || null,
+        city: data.city || null,
+        state: data.state || null,
+        country: data.country || 'India',
+        latitude: data.latitude !== undefined ? Number(data.latitude) : 26.140537,
+        longitude: data.longitude !== undefined ? Number(data.longitude) : 91.656738,
+        allowedRadiusMeters: data.allowedRadiusMeters !== undefined ? Number(data.allowedRadiusMeters) : 500,
+      }
+    });
+  }
+
+  async updateInstitution(id: string, data: any) {
+    return (this.prisma as any).institution.update({
+      where: { id },
+      data: {
+        ...(data.name && { name: data.name.trim() }),
+        ...(data.code && { code: data.code.trim().toUpperCase() }),
+        ...(data.address !== undefined && { address: data.address }),
+        ...(data.city !== undefined && { city: data.city }),
+        ...(data.state !== undefined && { state: data.state }),
+        ...(data.country !== undefined && { country: data.country }),
+        ...(data.latitude !== undefined && { latitude: Number(data.latitude) }),
+        ...(data.longitude !== undefined && { longitude: Number(data.longitude) }),
+        ...(data.allowedRadiusMeters !== undefined && { allowedRadiusMeters: Number(data.allowedRadiusMeters) }),
+      }
+    });
+  }
+
+  async deleteInstitution(id: string) {
+    return (this.prisma as any).institution.delete({ where: { id } });
+  }
+
   // --- Departments ---
-  async createDepartment(data: { name: string; institution: string }) {
-    return this.prisma.department.create({ data });
+  async createDepartment(data: { name: string; institution?: string; institutionId?: string }) {
+    let institutionName = data.institution;
+    if (data.institutionId && !institutionName) {
+      const inst = await (this.prisma as any).institution?.findUnique({ where: { id: data.institutionId } });
+      if (inst) institutionName = inst.name;
+    }
+    return this.prisma.department.create({
+      data: {
+        name: data.name.trim(),
+        institution: institutionName || 'Assam Engineering College',
+        institutionId: data.institutionId || null
+      }
+    });
   }
 
   async getAllDepartments() {
     return this.prisma.department.findMany({
-      include: { subjects: true, classrooms: true }
+      include: { subjects: true, classrooms: true },
+      orderBy: { name: 'asc' }
     });
+  }
+
+  async updateDepartment(id: string, data: { name?: string; institution?: string; institutionId?: string }) {
+    return this.prisma.department.update({
+      where: { id },
+      data: {
+        ...(data.name && { name: data.name.trim() }),
+        ...(data.institution && { institution: data.institution.trim() }),
+        ...(data.institutionId !== undefined && { institutionId: data.institutionId })
+      }
+    });
+  }
+
+  async deleteDepartment(id: string) {
+    return this.prisma.department.delete({ where: { id } });
   }
 
   // --- Subjects ---
@@ -162,14 +243,18 @@ export class AcademicService {
   }
 
   async getRegistrationOptions() {
+    const institutions = await this.prisma.institution.findMany({
+      orderBy: { name: 'asc' }
+    });
     const departments = await this.prisma.department.findMany({
       include: {
         subjects: {
           include: { sections: true }
         }
-      }
+      },
+      orderBy: { name: 'asc' }
     });
-    return { departments };
+    return { institutions, departments };
   }
 
   // --- Deletions ---

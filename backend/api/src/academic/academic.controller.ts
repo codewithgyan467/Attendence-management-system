@@ -9,16 +9,52 @@ import { Roles } from '../auth/roles.decorator.js';
 export class AcademicController {
   constructor(private academicService: AcademicService) {}
 
-  // Roles constraints should be defined, e.g., only INSTITUTION_ADMIN can create departments.
+  // --- Institutions ---
+  @Get('institutions')
+  getAllInstitutions() {
+    return this.academicService.getAllInstitutions();
+  }
+
+  @Roles('ADMIN')
+  @Post('institutions')
+  createInstitution(@Body() body: any) {
+    return this.academicService.createInstitution(body);
+  }
+
+  @Roles('ADMIN')
+  @Put('institutions/:id')
+  updateInstitution(@Param('id') id: string, @Body() body: any) {
+    return this.academicService.updateInstitution(id, body);
+  }
+
+  @Roles('ADMIN')
+  @Delete('institutions/:id')
+  deleteInstitution(@Param('id') id: string) {
+    return this.academicService.deleteInstitution(id);
+  }
+
+  // --- Departments ---
   @Roles('ADMIN')
   @Post('departments')
-  createDepartment(@Body() body: { name: string; institution: string }) {
+  createDepartment(@Body() body: { name: string; institution?: string; institutionId?: string }) {
     return this.academicService.createDepartment(body);
   }
 
   @Get('departments')
   getAllDepartments() {
     return this.academicService.getAllDepartments();
+  }
+
+  @Roles('ADMIN')
+  @Put('departments/:id')
+  updateDepartment(@Param('id') id: string, @Body() body: any) {
+    return this.academicService.updateDepartment(id, body);
+  }
+
+  @Roles('ADMIN')
+  @Delete('departments/:id')
+  deleteDepartment(@Param('id') id: string) {
+    return this.academicService.deleteDepartment(id);
   }
 
   @Get('institution')
