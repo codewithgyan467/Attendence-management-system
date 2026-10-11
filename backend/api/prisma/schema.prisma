@@ -59,12 +59,28 @@ model AdminProfile {
   user         User   @relation(fields: [userId], references: [id])
 }
 
+model Institution {
+  id                  String   @id @default(uuid())
+  name                String   @unique
+  code                String   @unique
+  address             String?
+  city                String?
+  state               String?
+  country             String?  @default("India")
+  latitude            Float?
+  longitude           Float?
+  allowedRadiusMeters Float?   @default(500)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
 model Department {
-  id          String   @id @default(uuid())
-  name        String
-  institution String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid())
+  name          String
+  institution   String
+  institutionId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
   
   subjects    Subject[]
   classrooms  Classroom[]
@@ -74,6 +90,9 @@ model Subject {
   id           String     @id @default(uuid())
   name         String
   code         String     @unique
+  syllabus     String?
+  semester     Int?
+  type         String?
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id])
   
@@ -143,20 +162,22 @@ model Classroom {
 }
 
 model TimetableEntry {
-  id             String       @id @default(uuid())
-  academicTermId String
-  academicTerm   AcademicTerm @relation(fields: [academicTermId], references: [id])
-  sectionId      String
-  section        Section      @relation(fields: [sectionId], references: [id])
-  classroomId    String
-  classroom      Classroom    @relation(fields: [classroomId], references: [id])
+  id               String       @id @default(uuid())
+  academicTermId   String
+  academicTerm     AcademicTerm @relation(fields: [academicTermId], references: [id])
+  sectionId        String
+  section          Section      @relation(fields: [sectionId], references: [id])
+  classroomId      String
+  classroom        Classroom    @relation(fields: [classroomId], references: [id])
   
-  dayOfWeek      Int          // 0 = Sunday, 1 = Monday, etc.
-  startTime      String       // Format "HH:mm" e.g., "09:00"
-  endTime        String       // Format "HH:mm" e.g., "10:00"
-  subjectType    String       // e.g., "Theory", "Lab", "Bridge Course"
+  dayOfWeek        Int          // 0 = Sunday, 1 = Monday, etc.
+  startTime        String       // Format "HH:mm" e.g., "09:00"
+  endTime          String       // Format "HH:mm" e.g., "10:00"
+  subjectType      String       // e.g., "Theory", "Lab", "Bridge Course"
+  facultyProfileId String?
+  facultyInitials  String?
   
-  sessions       ClassSession[]
+  sessions         ClassSession[]
 }
 
 model ESP32Device {

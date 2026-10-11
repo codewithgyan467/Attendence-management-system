@@ -20,13 +20,15 @@ export class AcademicService {
   async getSubjectsByDepartment(departmentId: string) {
     return this.prisma.subject.findMany({
       where: { departmentId },
-      include: { sections: true }
+      include: { sections: true },
+      orderBy: [{ semester: 'asc' }, { code: 'asc' }]
     });
   }
 
   async getAllSubjects() {
     return this.prisma.subject.findMany({
-      include: { department: true }
+      include: { department: true },
+      orderBy: [{ semester: 'asc' }, { code: 'asc' }]
     });
   }
 
@@ -75,7 +77,11 @@ export class AcademicService {
         academicTerm: true,
         section: { include: { subject: true } },
         classroom: true,
-      }
+      },
+      orderBy: [
+        { dayOfWeek: 'asc' },
+        { startTime: 'asc' }
+      ]
     });
   }
 
@@ -189,11 +195,16 @@ export class AcademicService {
 
   // --- Creations ---
   async createSubject(data: any) {
-    const dept = await this.prisma.department.findFirst({ where: { name: 'Computer Applications' } });
+    let dept = data.departmentId 
+      ? await this.prisma.department.findUnique({ where: { id: data.departmentId } })
+      : await this.prisma.department.findFirst({ where: { name: { contains: 'Computer' } } }) || await this.prisma.department.findFirst();
     return this.prisma.subject.create({
       data: {
         code: data.code,
         name: data.name,
+        syllabus: data.syllabus || null,
+        semester: data.semester ? parseInt(data.semester, 10) : null,
+        type: data.type || 'Theory',
         departmentId: dept!.id
       }
     });
@@ -233,6 +244,9 @@ export class AcademicService {
       data: {
         ...(data.code && { code: data.code.trim() }),
         ...(data.name && { name: data.name.trim() }),
+        ...(data.syllabus !== undefined && { syllabus: data.syllabus }),
+        ...(data.semester !== undefined && { semester: data.semester ? parseInt(data.semester, 10) : null }),
+        ...(data.type !== undefined && { type: data.type }),
         ...(data.departmentId && { departmentId: data.departmentId })
       }
     });
@@ -261,8 +275,33 @@ export class AcademicService {
         ...(data.dayOfWeek !== undefined && { dayOfWeek: parseInt(data.dayOfWeek, 10) }),
         ...(data.startTime && { startTime: data.startTime }),
         ...(data.endTime && { endTime: data.endTime }),
-        ...(data.subjectType && { subjectType: data.subjectType })
+        ...(data.subjectType && { subjectType: data.subjectType }),
+        ...(data.facultyInitials !== undefined && { facultyInitials: data.facultyInitials })
       }
     });
   }
+
+  // --- Universal Multi-Tenant Institution ---
+  async getInstitution() {
+    const inst = await (this.prisma as any).institution?.findFirst() || {
+      id: 'inst-aec-guwahati',
+      name: 'Assam Engineering College',
+      code: 'AEC',
+      address: 'Jalukbari, Guwahati, Assam 781013',
+      city: 'Guwahati',
+      state: 'Assam',
+      country: 'India',
+      latitude: 26.140537,
+      longitude: 91.656738,
+      allowedRadiusMeters: 500
+    };
+    const departments = await this.prisma.department.findMany({
+      include: {
+        subjects: true,
+        classrooms: true
+      }
+    });
+    return { institution: inst, departments };
+  }
 }
+

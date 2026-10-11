@@ -21,6 +21,11 @@ export class AcademicController {
     return this.academicService.getAllDepartments();
   }
 
+  @Get('institution')
+  getInstitution() {
+    return this.academicService.getInstitution();
+  }
+
   @Get('departments/:id/subjects')
   getSubjectsByDepartment(@Param('id') id: string) {
     return this.academicService.getSubjectsByDepartment(id);
