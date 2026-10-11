@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col md:flex-row min-h-screen w-full bg-slate-950 text-slate-100">
+    <div className="flex flex-col md:flex-row min-h-screen w-full bg-[#070b14] bg-grid-mesh text-slate-100">
       {/* Responsive Navigation: Top bar on mobile, Sidebar on desktop */}
       <aside className="w-full md:w-64 glass-panel shrink-0 md:min-h-screen border-b md:border-b-0 md:border-r border-white/10 flex flex-col justify-between">
         <div>

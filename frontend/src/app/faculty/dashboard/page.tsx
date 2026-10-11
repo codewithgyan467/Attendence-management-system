@@ -108,7 +108,7 @@ export default function FacultyDashboard() {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-white p-4 sm:p-6 md:p-8 overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#070b14] text-white p-4 sm:p-6 md:p-8 overflow-x-hidden bg-grid-mesh">
       {/* Ambient background glows */}
       <div className="absolute top-10 right-10 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-10 left-10 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>

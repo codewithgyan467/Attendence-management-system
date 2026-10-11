@@ -171,10 +171,10 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-white p-4 sm:p-6 md:p-8 overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#070b14] text-white p-4 sm:p-6 md:p-8 overflow-x-hidden bg-grid-mesh">
       {/* Ambient background glows */}
       <div className="absolute top-10 left-10 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-sky-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="relative z-10 max-w-4xl mx-auto space-y-6 sm:space-y-8">
         {/* Header */}
