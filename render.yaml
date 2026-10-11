@@ -19,6 +19,10 @@ services:
         generateValue: true
       - key: AI_SERVICE_URL
         sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
 
   # FastAPI AI Microservice (OpenCV + Liveness)
   - type: web
