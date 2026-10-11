@@ -48,6 +48,16 @@ export default function LoginPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // Ensure video element receives stream whenever camera becomes active
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isCameraActive]);
+
   // Cleanup camera on unmount or tab switch
   useEffect(() => {
     return () => {
@@ -66,17 +76,42 @@ export default function LoginPage() {
   const startCamera = async () => {
     try {
       setError('');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-      });
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        setError('Camera API not supported in this browser. Please use "Phone Selfie" or "Upload File".');
+        return;
+      }
+
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false,
+        });
+      } catch {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' },
+            audio: false,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
+      }
+
       streamRef.current = stream;
+      setIsCameraActive(true);
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        videoRef.current.play().catch(() => {});
       }
-      setIsCameraActive(true);
     } catch (err: any) {
-      setError('Camera access denied or unavailable. You can upload a photo file instead.');
+      console.error('Camera open error:', err);
+      setIsCameraActive(false);
+      setError('Camera permission denied or camera unavailable. You can use "Phone Selfie" or "Upload File" below.');
     }
   };
 
@@ -748,15 +783,39 @@ export default function LoginPage() {
                       {/* Video viewfinder */}
                       {isCameraActive && (
                         <div className="relative rounded-xl overflow-hidden aspect-video bg-black flex items-center justify-center border border-sky-400/30">
-                          <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
+                          <video
+                            ref={(el) => {
+                              videoRef.current = el;
+                              if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                                el.srcObject = streamRef.current;
+                                el.play().catch(() => {});
+                              }
+                            }}
+                            onLoadedMetadata={(e) => {
+                              e.currentTarget.play().catch(() => {});
+                            }}
+                            className="w-full h-full object-cover"
+                            autoPlay
+                            playsInline
+                            muted
+                          />
                           <div className="absolute inset-0 border-2 border-dashed border-sky-400/50 rounded-full w-36 h-48 m-auto pointer-events-none"></div>
-                          <button
-                            type="button"
-                            onClick={capturePhoto}
-                            className="absolute bottom-2 px-4 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs shadow-lg"
-                          >
-                            Capture Frame
-                          </button>
+                          <div className="absolute bottom-2 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={capturePhoto}
+                              className="px-4 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs shadow-lg active:scale-95 transition-all"
+                            >
+                              Capture Frame
+                            </button>
+                            <button
+                              type="button"
+                              onClick={stopCamera}
+                              className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-medium text-xs border border-white/10"
+                            >
+                              Close
+                            </button>
+                          </div>
                         </div>
                       )}
 
@@ -770,29 +829,42 @@ export default function LoginPage() {
                           />
                           <div>
                             <span className="text-[11px] text-slate-300 block font-medium">Face Biometrics Attached</span>
-                            <button
-                              type="button"
-                              onClick={() => { setRegFaceImage(null); startCamera(); }}
-                              className="text-[10px] text-sky-400 hover:underline font-bold mt-0.5"
-                            >
-                              Retake Photo
-                            </button>
+                            <div className="flex items-center gap-2 mt-1">
+                              <button
+                                type="button"
+                                onClick={() => { setRegFaceImage(null); startCamera(); }}
+                                className="text-[10px] text-sky-400 hover:underline font-bold"
+                              >
+                                Retake via Camera
+                              </button>
+                              <span className="text-slate-600">•</span>
+                              <label className="text-[10px] text-sky-400 hover:underline font-bold cursor-pointer">
+                                Re-upload
+                                <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                              </label>
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Capture / Upload actions */}
-                      {!isCameraActive && !regFaceImage && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={startCamera}
-                            className="flex-1 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-xs font-semibold text-sky-200 transition-colors"
-                          >
-                            Open Camera
-                          </button>
-                          <label className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-semibold text-slate-300 text-center cursor-pointer transition-colors">
-                            Upload File
+                      {/* Always available camera & upload actions */}
+                      {!regFaceImage && (
+                        <div className="space-y-2 pt-1">
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={startCamera}
+                              className="py-2 px-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-xs font-semibold text-sky-200 transition-colors flex items-center justify-center gap-1.5"
+                            >
+                              <span>📹</span> Live Camera
+                            </button>
+                            <label className="py-2 px-3 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-xs font-semibold text-indigo-200 text-center cursor-pointer transition-colors flex items-center justify-center gap-1.5">
+                              <span>📱</span> Phone Selfie
+                              <input type="file" accept="image/*" capture="user" onChange={handleFileUpload} className="hidden" />
+                            </label>
+                          </div>
+                          <label className="block w-full py-1.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-medium text-slate-400 text-center cursor-pointer transition-colors">
+                            📁 Choose Photo from Gallery / Device
                             <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
                           </label>
                         </div>

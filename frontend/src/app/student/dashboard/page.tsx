@@ -58,6 +58,16 @@ export default function StudentDashboard() {
     return () => clearInterval(interval);
   }, [token, simDay, simTime, fetchSchedule]);
 
+  // Ensure video element receives stream whenever camera becomes active
+  useEffect(() => {
+    if (status === 'camera' && videoRef.current && streamRef.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+      videoRef.current.play().catch(() => {});
+    }
+  }, [status]);
+
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -110,10 +120,10 @@ export default function StudentDashboard() {
         startCamera();
       },
       (error) => {
-        // Fallback to AEC MCA Department coordinates if browser blocks location
+        // Fallback to active testing coordinates if browser blocks location
         setLocation({
-          lat: 26.1412,
-          lng: 91.6620,
+          lat: 26.140537,
+          lng: 91.656738,
           acc: 10
         });
         setStatus('camera');
@@ -125,34 +135,37 @@ export default function StudentDashboard() {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false,
+        });
+      } catch {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' },
+            audio: false,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
       }
     } catch (err) {
-      setStatus('error');
-      setErrorMessage('CAMERA ACCESS DENIED. PLEASE ALLOW CAMERA PERMISSIONS.');
+      console.error('Camera open error:', err);
+      // Even if stream failed, remain in camera status so user can tap Native Selfie / Upload
+      setErrorMessage('Camera access was not granted. Please allow camera permissions or tap "Phone Selfie" below.');
     }
   };
 
-  const captureAndVerify = async () => {
-    setStatus('verifying');
-    
-    let base64Image = '';
-    if (videoRef.current) {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth || 640;
-      canvas.height = videoRef.current.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        base64Image = canvas.toDataURL('image/jpeg', 0.8);
-      }
-    }
-    
+  const submitAttendancePayload = async (base64Image: string) => {
     stopCamera();
-    
+    setStatus('verifying');
     try {
       const res = await fetch(`${API_URL}/attendance/mark`, {
         method: 'POST',
@@ -163,8 +176,8 @@ export default function StudentDashboard() {
         body: JSON.stringify({
           classSessionId: scheduleData.session.id,
           verificationMethod: 'FACE_GPS',
-          latitude: location?.lat || 26.1412,
-          longitude: location?.lng || 91.6620,
+          latitude: location?.lat || 26.140537,
+          longitude: location?.lng || 91.656738,
           gpsAccuracy: location?.acc || 10,
           base64Image: base64Image,
           simulateTime: simTime,
@@ -182,6 +195,34 @@ export default function StudentDashboard() {
       setStatus('error');
       setErrorMessage(err.message.toUpperCase());
     }
+  };
+
+  const captureAndVerify = async () => {
+    let base64Image = '';
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth || 640;
+      canvas.height = videoRef.current.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        base64Image = canvas.toDataURL('image/jpeg', 0.85);
+      }
+    }
+    await submitAttendancePayload(base64Image);
+  };
+
+  const handleNativeUploadAndVerify = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        await submitAttendancePayload(base64);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleLogout = () => {
@@ -325,7 +366,16 @@ export default function StudentDashboard() {
                   <p className="text-xs text-slate-400 mb-4">Please look directly into the camera to confirm presence</p>
                   <div className="w-full max-w-sm aspect-video bg-black rounded-xl overflow-hidden border border-white/20 mb-4 relative shadow-inner">
                     <video 
-                      ref={videoRef} 
+                      ref={(el) => {
+                        videoRef.current = el;
+                        if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                          el.srcObject = streamRef.current;
+                          el.play().catch(() => {});
+                        }
+                      }}
+                      onLoadedMetadata={(e) => {
+                        e.currentTarget.play().catch(() => {});
+                      }}
                       autoPlay 
                       playsInline 
                       muted 
@@ -339,6 +389,10 @@ export default function StudentDashboard() {
                   >
                     Capture & Confirm Attendance
                   </button>
+                  <label className="mt-3.5 py-2 px-4 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-xs font-semibold text-indigo-200 cursor-pointer transition-colors flex items-center justify-center gap-2">
+                    <span>📱</span> Or Take Selfie via Phone Camera / Upload Photo
+                    <input type="file" accept="image/*" capture="user" onChange={handleNativeUploadAndVerify} className="hidden" />
+                  </label>
                 </div>
               )}
 
