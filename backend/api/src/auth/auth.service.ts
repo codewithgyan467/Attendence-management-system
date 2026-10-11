@@ -533,7 +533,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName
       },
-      access_token: token
+      access_token: token,
     };
   }
 }
