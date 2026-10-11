@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_URL } from '@/lib/api';
 
 export default function UsersManagement() {
   const [users, setUsers] = useState<any[]>([]);
@@ -9,7 +10,7 @@ export default function UsersManagement() {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3001/users', {
+        const res = await fetch(`${API_URL}/users`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -64,7 +65,7 @@ export default function UsersManagement() {
                   <button className="text-xs bg-[#ff3366] text-white px-2 py-1" onClick={async () => {
                     if (confirm(`Delete ${u.firstName} ${u.lastName}?`)) {
                       const token = localStorage.getItem('token');
-                      await fetch(`http://localhost:3001/users/${u.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                      await fetch(`${API_URL}/users/${u.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
                       setUsers(users.filter((user: any) => user.id !== u.id));
                     }
                   }}>DEL</button>
@@ -87,7 +88,7 @@ export default function UsersManagement() {
             const formData = new FormData(e.currentTarget as HTMLFormElement);
             const data = Object.fromEntries(formData.entries());
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:3001/users', {
+            const res = await fetch(`${API_URL}/users`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
               body: JSON.stringify(data)

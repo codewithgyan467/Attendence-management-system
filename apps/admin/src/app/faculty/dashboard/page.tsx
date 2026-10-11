@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-const API_URL = 'http://localhost:3001';
+import { API_URL } from '@/lib/api';
 
 export default function FacultyDashboard() {
   const [sessionActive, setSessionActive] = useState(false);

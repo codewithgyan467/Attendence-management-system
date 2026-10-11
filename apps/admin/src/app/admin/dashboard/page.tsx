@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_URL } from '@/lib/api';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -14,7 +15,7 @@ export default function AdminDashboard() {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3001/reports/global', {
+        const res = await fetch(`${API_URL}/reports/global`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

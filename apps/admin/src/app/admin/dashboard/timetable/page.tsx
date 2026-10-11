@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_URL } from '@/lib/api';
 
 export default function TimetableManagement() {
   const [activeTab, setActiveTab] = useState('syllabus');
@@ -17,11 +18,11 @@ export default function TimetableManagement() {
         const headers = { Authorization: `Bearer ${token}` };
         
         const [subRes, termsRes, ttRes, secRes, clsRes] = await Promise.all([
-          fetch('http://localhost:3001/academic/subjects', { headers }),
-          fetch('http://localhost:3001/academic/terms', { headers }),
-          fetch('http://localhost:3001/academic/timetable', { headers }),
-          fetch('http://localhost:3001/academic/sections', { headers }),
-          fetch('http://localhost:3001/academic/classrooms', { headers }),
+          fetch(`${API_URL}/academic/subjects`, { headers }),
+          fetch(`${API_URL}/academic/terms`, { headers }),
+          fetch(`${API_URL}/academic/timetable`, { headers }),
+          fetch(`${API_URL}/academic/sections`, { headers }),
+          fetch(`${API_URL}/academic/classrooms`, { headers }),
         ]);
 
         if (subRes.ok) setSubjects(await subRes.json());
@@ -96,7 +97,7 @@ export default function TimetableManagement() {
                       <button className="text-xs bg-[#ff3366] text-white px-2 py-1" onClick={async () => {
                         if (confirm(`Delete subject ${subject.code}?`)) {
                           const token = localStorage.getItem('token');
-                          await fetch(`http://localhost:3001/academic/subjects/${subject.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                          await fetch(`${API_URL}/academic/subjects/${subject.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
                           setSubjects(subjects.filter((s: any) => s.id !== subject.id));
                         }
                       }}>DEL</button>
@@ -119,7 +120,7 @@ export default function TimetableManagement() {
                 const formData = new FormData(e.currentTarget as HTMLFormElement);
                 const data = Object.fromEntries(formData.entries());
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:3001/academic/subjects', {
+                const res = await fetch(`${API_URL}/academic/subjects`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                   body: JSON.stringify(data)
@@ -170,7 +171,7 @@ export default function TimetableManagement() {
                       <button className="text-xs bg-[#ff3366] text-white px-2 py-1" onClick={async () => {
                         if (confirm(`Delete term ${term.name}?`)) {
                           const token = localStorage.getItem('token');
-                          await fetch(`http://localhost:3001/academic/terms/${term.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                          await fetch(`${API_URL}/academic/terms/${term.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
                           setTerms(terms.filter((t: any) => t.id !== term.id));
                         }
                       }}>DEL</button>
@@ -191,7 +192,7 @@ export default function TimetableManagement() {
                 const formData = new FormData(e.currentTarget as HTMLFormElement);
                 const data = Object.fromEntries(formData.entries());
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:3001/academic/terms', {
+                const res = await fetch(`${API_URL}/academic/terms`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                   body: JSON.stringify(data)
@@ -254,7 +255,7 @@ export default function TimetableManagement() {
                         <button className="text-xs bg-[#ff3366] text-white px-2 py-1" onClick={async () => {
                           if (confirm(`Delete slot ${tt.subjectType} - ${tt.startTime}?`)) {
                             const token = localStorage.getItem('token');
-                            await fetch(`http://localhost:3001/academic/timetable/${tt.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                            await fetch(`${API_URL}/academic/timetable/${tt.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
                             setTimetable(timetable.filter((t: any) => t.id !== tt.id));
                           }
                         }}>DEL</button>
@@ -276,7 +277,7 @@ export default function TimetableManagement() {
                 const formData = new FormData(e.currentTarget as HTMLFormElement);
                 const data = Object.fromEntries(formData.entries());
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:3001/academic/timetable', {
+                const res = await fetch(`${API_URL}/academic/timetable`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                   body: JSON.stringify(data)

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-const API_URL = 'http://localhost:3001';
+import { API_URL } from '@/lib/api';
 
 export default function StudentDashboard() {
   const [status, setStatus] = useState<'idle' | 'locating' | 'camera' | 'verifying' | 'success' | 'error'>('idle');
