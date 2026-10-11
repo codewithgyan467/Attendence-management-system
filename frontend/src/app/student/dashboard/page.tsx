@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { API_URL } from '@/lib/api';
+import { compressImage } from '@/lib/image';
 import ClockWidget from '@/components/ClockWidget';
 
 export default function StudentDashboard() {
@@ -201,12 +202,13 @@ export default function StudentDashboard() {
     let base64Image = '';
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth || 640;
-      canvas.height = videoRef.current.videoHeight || 480;
+      canvas.width = Math.min(videoRef.current.videoWidth || 640, 800);
+      canvas.height = Math.min(videoRef.current.videoHeight || 480, 800);
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        base64Image = canvas.toDataURL('image/jpeg', 0.85);
+        const raw = canvas.toDataURL('image/jpeg', 0.8);
+        base64Image = await compressImage(raw, 800, 800, 0.75);
       }
     }
     await submitAttendancePayload(base64Image);
@@ -215,14 +217,13 @@ export default function StudentDashboard() {
   const handleNativeUploadAndVerify = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        await submitAttendancePayload(base64);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const optimized = await compressImage(file, 800, 800, 0.75);
+      await submitAttendancePayload(optimized);
+    } catch {
+      setStatus('error');
+      setErrorMessage('FAILED TO PROCESS IMAGE');
+    }
   };
 
   const handleLogout = () => {

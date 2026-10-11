@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_URL } from '@/lib/api';
+import { compressImage } from '@/lib/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -115,35 +116,32 @@ export default function LoginPage() {
     }
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current) return;
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth || 640;
-    canvas.height = videoRef.current.videoHeight || 480;
+    canvas.width = Math.min(videoRef.current.videoWidth || 640, 800);
+    canvas.height = Math.min(videoRef.current.videoHeight || 480, 800);
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      setRegFaceImage(dataUrl);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const optimized = await compressImage(dataUrl, 800, 800, 0.75);
+      setRegFaceImage(optimized);
       stopCamera();
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image file must be under 5MB');
-        return;
+      try {
+        setError('');
+        const optimized = await compressImage(file, 800, 800, 0.75);
+        setRegFaceImage(optimized);
+        stopCamera();
+      } catch (err) {
+        setError('Failed to process image file. Please try another image.');
       }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setRegFaceImage(event.target.result as string);
-          stopCamera();
-        }
-      };
-      reader.readAsDataURL(file);
     }
   };
 
