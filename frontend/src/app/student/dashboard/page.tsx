@@ -165,99 +165,160 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/';
+  };
+
   return (
-    <div className="p-8 max-w-4xl mx-auto selection:bg-[#ffe600] selection:text-black">
-      <header className="border-b-8 border-black pb-4 mb-8 flex flex-col md:flex-row justify-between md:items-end gap-4">
-        <div>
-          <h1 className="text-5xl font-extrabold uppercase tracking-tighter bg-black text-white inline-block px-4 py-2">STUDENT PORTAL</h1>
-          <p className="text-2xl font-bold mt-4 border-l-4 border-black pl-4 uppercase">{studentName} • MCA</p>
-        </div>
-        <div className="bg-[#ffe600] border-4 border-black px-6 py-3 text-xl font-bold uppercase shadow-[8px_8px_0_0_#000]">
-          ID: AEC-MCA-100
-        </div>
-      </header>
+    <div className="relative min-h-screen bg-slate-950 text-white p-4 sm:p-6 md:p-8 overflow-x-hidden">
+      {/* Ambient background glows */}
+      <div className="absolute top-10 left-10 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="bg-white border-4 border-black p-8 shadow-[12px_12px_0_0_#000] mb-8">
-        <h2 className="text-3xl font-extrabold uppercase mb-6 bg-black text-white inline-block px-4 py-1">LIVE CLASSES</h2>
-        
-        {!activeSession ? (
-          <div className="p-8 text-center border-4 border-black bg-gray-100 text-gray-500 font-bold uppercase text-2xl">
-            Waiting for faculty to open a session...
+      <div className="relative z-10 max-w-4xl mx-auto space-y-6 sm:space-y-8">
+        {/* Header */}
+        <header className="glass-panel rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold uppercase bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 mb-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Student Portal
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{studentName}</h1>
+            <p className="text-xs sm:text-sm text-slate-400">Assam Engineering College • MCA Dept</p>
           </div>
-        ) : (
-          <>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-xl font-black uppercase px-2 bg-red-600 text-white blink">● IN PROGRESS</span>
-            </div>
-            <div className="text-5xl font-black uppercase tracking-tighter mb-4">{activeSession.timetableEntry?.section?.subject?.name || 'Live Class'}</div>
-            <div className="text-2xl font-bold mb-8 border-l-4 border-black pl-4 uppercase">
-              ROOM: {activeSession.classroom?.name} • STARTED: {new Date(activeSession.startTime).toLocaleTimeString()}
-            </div>
 
-            {status === 'idle' && (
-              <button onClick={startAttendanceProcess} className="bg-black text-white hover:bg-[#ffe600] hover:text-black w-full font-black uppercase text-3xl py-6 border-4 border-transparent hover:border-black transition-colors shadow-[8px_8px_0_0_#000]">
-                MARK ATTENDANCE
-              </button>
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs sm:text-sm font-semibold text-slate-300">
+              ID: AEC-MCA-100
+            </span>
+            <button 
+              onClick={handleLogout}
+              className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs sm:text-sm font-medium transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </header>
+
+        {/* Live Classes Card */}
+        <div className="glass-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+              <span>📚</span> Live Classroom Session
+            </h2>
+            {activeSession && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30 animate-pulse">
+                <span className="w-2 h-2 rounded-full bg-rose-400"></span> Active
+              </span>
             )}
-
-            {status === 'locating' && (
-              <div className="bg-[#ffe600] border-4 border-black p-8 text-center animate-pulse">
-                <h3 className="text-3xl font-black uppercase">Acquiring GPS...</h3>
-              </div>
-            )}
-
-            {status === 'camera' && (
-              <div className="border-4 border-black p-4 bg-white flex flex-col items-center">
-                <h3 className="text-2xl font-black uppercase mb-4">Face Recognition</h3>
-                <div className="w-full max-w-md aspect-video bg-black border-4 border-black mb-6 relative overflow-hidden">
-                  <video 
-                    ref={videoRef} 
-                    autoPlay 
-                    playsInline 
-                    muted 
-                    className="w-full h-full object-cover"
-                  ></video>
-                  <div className="absolute inset-0 border-[8px] border-[#ffe600] opacity-50"></div>
+          </div>
+          
+          {!activeSession ? (
+            <div className="p-8 sm:p-12 text-center rounded-2xl bg-white/[0.02] border border-white/10">
+              <div className="text-4xl mb-3">⏳</div>
+              <h3 className="text-base sm:text-lg font-semibold text-slate-200">No active class session</h3>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-sm mx-auto">
+                Waiting for your faculty to start attendance for today&apos;s lecture. This card updates automatically.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="p-5 sm:p-6 rounded-2xl bg-white/[0.04] border border-white/10">
+                <div className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-2">
+                  {activeSession.timetableEntry?.section?.subject?.name || 'Classroom Lecture'}
                 </div>
-                <button onClick={captureAndVerify} className="bg-black text-white hover:bg-[#ffe600] hover:text-black font-black uppercase text-3xl py-6 w-full border-4 border-transparent hover:border-black transition-colors shadow-[8px_8px_0_0_#000]">
-                  CAPTURE & VERIFY
-                </button>
+                <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-300">
+                  <span className="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium">
+                    Room: {activeSession.classroom?.name || 'Classroom'}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 font-medium">
+                    Started: {new Date(activeSession.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
               </div>
-            )}
 
-            {status === 'verifying' && (
-              <div className="bg-black text-white border-4 border-black p-8 text-center">
-                <h3 className="text-3xl font-black uppercase blink">Verifying Biometrics & Location...</h3>
-              </div>
-            )}
-
-            {status === 'success' && (
-              <div className="bg-[#ffe600] border-4 border-black p-8 text-center shadow-[12px_12px_0_0_#000]">
-                <h3 className="text-5xl font-black uppercase mb-4 text-black">SUCCESS!</h3>
-                <p className="text-2xl font-bold uppercase border-t-4 border-black pt-4">Attendance Logged Successfully</p>
-                <button onClick={() => setStatus('idle')} className="bg-black text-white font-black uppercase text-xl px-8 py-4 mt-8 border-4 border-black hover:bg-white hover:text-black transition-colors">
-                  DONE
+              {/* Attendance Action State */}
+              {status === 'idle' && (
+                <button 
+                  onClick={startAttendanceProcess} 
+                  className="glass-btn w-full py-4 rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-[0.99] transition-all"
+                >
+                  <span>📍 Mark My Attendance</span>
                 </button>
-              </div>
-            )}
+              )}
 
-            {status === 'error' && (
-              <div className="bg-red-600 text-white border-4 border-black p-8 text-center shadow-[12px_12px_0_0_#000]">
-                <h3 className="text-5xl font-black uppercase mb-4">ERROR</h3>
-                <p className="text-2xl font-bold uppercase border-t-4 border-black pt-4">{errorMessage}</p>
-                <button onClick={() => setStatus('idle')} className="bg-white text-black font-black uppercase text-xl px-8 py-4 mt-8 border-4 border-black hover:bg-black hover:text-white transition-colors">
-                  RETRY
-                </button>
-              </div>
-            )}
-          </>
-        )}
+              {status === 'locating' && (
+                <div className="p-6 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-center space-y-2 animate-pulse">
+                  <div className="text-3xl animate-bounce">📡</div>
+                  <h3 className="text-base sm:text-lg font-bold text-indigo-200">Checking GPS Location...</h3>
+                  <p className="text-xs text-slate-400">Verifying proximity to classroom...</p>
+                </div>
+              )}
+
+              {status === 'camera' && (
+                <div className="p-4 sm:p-6 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col items-center">
+                  <h3 className="text-base font-bold text-slate-200 mb-3 flex items-center gap-2">
+                    <span>📷</span> Facial Verification & Liveness
+                  </h3>
+                  <div className="w-full max-w-sm aspect-video bg-black rounded-xl overflow-hidden border border-white/20 mb-4 relative shadow-inner">
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      playsInline 
+                      muted 
+                      className="w-full h-full object-cover"
+                    ></video>
+                    <div className="absolute inset-4 border-2 border-dashed border-indigo-400/60 rounded-lg pointer-events-none"></div>
+                  </div>
+                  <button 
+                    onClick={captureAndVerify} 
+                    className="glass-btn w-full max-w-sm py-3.5 rounded-xl font-bold text-base cursor-pointer shadow-lg active:scale-[0.99] transition-all"
+                  >
+                    Capture & Verify Attendance
+                  </button>
+                </div>
+              )}
+
+              {status === 'verifying' && (
+                <div className="p-6 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-center space-y-2">
+                  <div className="inline-block animate-spin text-3xl">⚙️</div>
+                  <h3 className="text-base sm:text-lg font-bold text-purple-200">Verifying Biometrics & Distance...</h3>
+                  <p className="text-xs text-slate-400">Please wait while the server logs your record.</p>
+                </div>
+              )}
+
+              {status === 'success' && (
+                <div className="p-6 sm:p-8 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-center space-y-3">
+                  <div className="text-4xl">✅</div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-emerald-300">Attendance Logged Successfully!</h3>
+                  <p className="text-xs sm:text-sm text-slate-300">Your presence and coordinates have been verified.</p>
+                  <button 
+                    onClick={() => setStatus('idle')} 
+                    className="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-sm font-semibold text-white transition-colors"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+
+              {status === 'error' && (
+                <div className="p-6 sm:p-8 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-center space-y-3">
+                  <div className="text-4xl">⚠️</div>
+                  <h3 className="text-xl font-bold text-rose-300">Verification Failed</h3>
+                  <p className="text-xs sm:text-sm text-rose-200">{errorMessage}</p>
+                  <button 
+                    onClick={() => setStatus('idle')} 
+                    className="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-sm font-semibold text-white transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        .blink { animation: blinker 1s linear infinite; }
-        @keyframes blinker { 50% { opacity: 0; } }
-      `}} />
     </div>
   );
 }

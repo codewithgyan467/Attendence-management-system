@@ -1,62 +1,77 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Courier New", Courier, monospace;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
-    --primary: 60 100% 50%; /* Harsh Yellow */
-    --primary-foreground: 0 0% 0%;
-    --destructive: 0 100% 50%; /* Harsh Red */
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 0%;
-    --input: 0 0% 100%;
-    --ring: 0 0% 0%;
-    --radius: 0rem; /* No rounded corners in brutalism */
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
   }
 
-  .dark {
-    /* Brutalism often eschews dark mode or just inverts harshly */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 0%;
-    --card-foreground: 0 0% 100%;
-    --primary: 60 100% 50%;
-    --primary-foreground: 0 0% 0%;
-    --destructive: 0 100% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 100%;
-    --input: 0 0% 0%;
-    --ring: 0 0% 100%;
-  }
-}
-
-@layer base {
   * {
-    border-color: var(--border);
+    box-sizing: border-box;
   }
+
   body {
-    @apply bg-white text-black font-sans antialiased;
-    border: 8px solid black;
+    background-color: #030712;
+    color: #f3f4f6;
+    font-family: var(--font-sans);
     min-height: 100vh;
+    overflow-x: hidden;
   }
 }
 
-/* Brutalist utility classes */
-.brutal-btn {
-  @apply bg-[#ffe600] text-black border-4 border-black px-6 py-3 font-bold uppercase transition-transform active:translate-y-1 active:translate-x-1 shadow-[4px_4px_0_0_#000] hover:bg-black hover:text-[#ffe600] hover:shadow-none;
+/* Glassmorphic utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-.brutal-card {
-  @apply bg-white border-4 border-black p-6 shadow-[8px_8px_0_0_#000];
+.glass-panel-subtle {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.brutal-input {
-  @apply bg-white border-4 border-black px-4 py-3 font-bold focus:outline-none focus:ring-4 focus:ring-[#ffe600] focus:ring-offset-0;
+.glass-input {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  transition: all 0.2s ease-in-out;
+}
+
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(129, 140, 248, 0.8);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+.glass-btn {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.85), rgba(168, 85, 247, 0.85));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  box-shadow: 0 4px 20px 0 rgba(99, 102, 241, 0.35);
+  transition: all 0.2s ease-in-out;
+}
+
+.glass-btn:hover {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.95), rgba(192, 132, 252, 0.95));
+  box-shadow: 0 6px 24px 0 rgba(99, 102, 241, 0.5);
+  transform: translateY(-1px);
+}
+
+.glass-btn:active {
+  transform: translateY(0);
 }
 

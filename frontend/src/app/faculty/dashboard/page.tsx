@@ -102,128 +102,168 @@ export default function FacultyDashboard() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/';
+  };
+
   return (
-    <div className="min-h-screen bg-white text-black p-8 md:p-12 font-mono selection:bg-[#ffe600] selection:text-black">
-      <div className="max-w-5xl mx-auto space-y-12">
+    <div className="relative min-h-screen bg-slate-950 text-white p-4 sm:p-6 md:p-8 overflow-x-hidden">
+      {/* Ambient background glows */}
+      <div className="absolute top-10 right-10 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-10 left-10 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div className="relative z-10 max-w-5xl mx-auto space-y-6 sm:space-y-8">
         
         {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b-8 border-black pb-6">
+        <header className="glass-panel rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-5xl font-black uppercase tracking-tighter bg-black text-white inline-block px-4 py-2">FACULTY PORTAL</h1>
-            <p className="text-2xl font-bold mt-4 border-l-4 border-black pl-4 uppercase">{facultyName} • MCA Dept</p>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold uppercase bg-purple-500/15 text-purple-300 border border-purple-500/30 mb-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Faculty Portal
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{facultyName}</h1>
+            <p className="text-xs sm:text-sm text-slate-400">Department of Computer Applications • AEC</p>
           </div>
-          <div className="bg-[#ffe600] border-4 border-black px-6 py-3 text-xl font-bold uppercase shadow-[8px_8px_0_0_#000]">
-            System Online • 2026
+
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs sm:text-sm font-semibold text-emerald-300 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              System Live
+            </span>
+            <button 
+              onClick={handleLogout}
+              className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs sm:text-sm font-medium transition-colors"
+            >
+              Logout
+            </button>
           </div>
         </header>
 
         {!sessionActive ? (
           <div className="space-y-6">
-            <h2 className="text-3xl font-black uppercase tracking-widest bg-black text-white inline-block px-3 py-1 mb-4">TODAY'S CLASSES</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <span>📅</span> Today&apos;s Lecture Schedule
+              </h2>
+              <span className="text-xs text-slate-400 font-medium">{todayClasses.length} Scheduled</span>
+            </div>
             
             {todayClasses.length === 0 && (
-              <div className="border-4 border-black p-8 text-xl font-bold uppercase bg-gray-100">
-                No classes scheduled for today.
+              <div className="glass-panel rounded-2xl p-8 sm:p-12 text-center text-slate-400">
+                <div className="text-3xl mb-2">☕</div>
+                <h3 className="text-base font-semibold text-slate-200">No classes scheduled for today</h3>
+                <p className="text-xs text-slate-400 mt-1">Enjoy your time or check other semester assignments.</p>
               </div>
             )}
 
-            {todayClasses.map((cls) => (
-              <div key={cls.id} className="bg-white border-4 border-black p-8 relative shadow-[12px_12px_0_0_#000] hover:-translate-y-1 hover:shadow-[16px_16px_0_0_#000] transition-all mb-6">
-                <div className="absolute top-0 right-0 bg-black text-white font-bold px-4 py-2 uppercase text-xl">
-                  {cls.subjectType}
-                </div>
-                
-                <div className="flex flex-col md:flex-row justify-between md:items-center gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              {todayClasses.map((cls) => (
+                <div 
+                  key={cls.id} 
+                  className="glass-panel rounded-2xl p-5 sm:p-6 relative hover:border-indigo-400/50 transition-all flex flex-col justify-between"
+                >
                   <div>
-                    <h3 className="text-4xl font-black uppercase mb-4">{cls.section.subject.name} ({cls.section.subject.code})</h3>
-                    <div className="flex flex-wrap items-center gap-4 font-bold text-lg uppercase">
-                      <span className="bg-[#ffe600] border-2 border-black px-4 py-2">
-                        {cls.classroom.name}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        {cls.subjectType}
                       </span>
-                      <span className="bg-white border-2 border-black px-4 py-2">
+                      <span className="text-xs font-medium text-slate-400">
                         {cls.startTime} — {cls.endTime}
                       </span>
                     </div>
+
+                    <h3 className="text-lg sm:text-xl font-bold text-white mb-2 line-clamp-2">
+                      {cls.section?.subject?.name}
+                    </h3>
+                    <p className="text-xs text-slate-400 mb-4">
+                      Code: {cls.section?.subject?.code} • {cls.classroom?.name}
+                    </p>
                   </div>
-                  
+
                   <button 
                     onClick={() => startSession(cls)}
-                    className="bg-black text-white hover:bg-[#ffe600] hover:text-black font-black uppercase text-2xl py-6 px-10 border-4 border-transparent hover:border-black transition-colors"
+                    className="glass-btn w-full py-3 rounded-xl font-bold text-sm sm:text-base cursor-pointer shadow-lg active:scale-[0.99] transition-all"
                   >
-                    START SESSION
+                    🚀 Start Attendance Session
                   </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="space-y-8">
-            <div className="bg-[#ffe600] border-4 border-black p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-[12px_12px_0_0_#000]">
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl font-black uppercase px-2 bg-red-600 text-white blink">● LIVE SESSION</span>
+          <div className="space-y-6">
+            {/* Live Active Session Banner */}
+            <div className="glass-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 border-rose-500/30 bg-rose-500/[0.05]">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40 mb-3 animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-rose-400"></span> Active Classroom Session
+                  </div>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white">
+                    {activeSession.classDetails?.section?.subject?.name || 'Class Session'}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                    {activeSession.classDetails?.classroom?.name} • Started at {new Date(activeSession.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
                 </div>
-                <h2 className="text-5xl font-black uppercase">{activeSession.classDetails.section.subject.name}</h2>
-                <p className="text-2xl font-bold mt-2 uppercase border-t-4 border-black pt-2">
-                  {activeSession.classDetails.classroom.name} • STARTED AT {new Date(activeSession.startTime).toLocaleTimeString()}
-                </p>
+                
+                <button 
+                  onClick={endSession}
+                  className="px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm sm:text-base transition-colors shadow-lg shadow-rose-900/30 shrink-0 cursor-pointer"
+                >
+                  ⏹ End Attendance Session
+                </button>
               </div>
-              
-              <button 
-                onClick={endSession}
-                className="bg-red-600 hover:bg-black text-white font-black text-2xl py-6 px-10 border-4 border-black transition-colors uppercase"
-              >
-                END SESSION
-              </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-8">
-              <div className="bg-white border-4 border-black p-8 shadow-[8px_8px_0_0_#000] flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-black uppercase mb-2 bg-black text-white px-4 py-1">PRESENT</span>
-                <span className="text-7xl font-black text-green-600">
+            {/* Attendance Stats Cards */}
+            <div className="grid grid-cols-2 gap-4 sm:gap-6">
+              <div className="glass-panel rounded-2xl p-5 sm:p-6 text-center border-emerald-500/20 bg-emerald-500/[0.04]">
+                <span className="text-xs font-bold uppercase text-emerald-300 tracking-wider">Present / Late</span>
+                <div className="text-3xl sm:text-5xl font-extrabold text-emerald-400 mt-1">
                   {roster.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length}
-                </span>
+                </div>
               </div>
-              <div className="bg-white border-4 border-black p-8 shadow-[8px_8px_0_0_#000] flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-black uppercase mb-2 bg-black text-white px-4 py-1">PENDING</span>
-                <span className="text-7xl font-black text-red-600">
+              <div className="glass-panel rounded-2xl p-5 sm:p-6 text-center border-amber-500/20 bg-amber-500/[0.04]">
+                <span className="text-xs font-bold uppercase text-amber-300 tracking-wider">Pending / Offline</span>
+                <div className="text-3xl sm:text-5xl font-extrabold text-amber-400 mt-1">
                   {roster.filter(r => r.status === 'PENDING').length}
-                </span>
+                </div>
               </div>
             </div>
 
-            <div className="bg-white border-4 border-black shadow-[12px_12px_0_0_#000]">
-              <div className="p-6 border-b-4 border-black flex justify-between items-center bg-gray-100">
-                <h3 className="font-black text-3xl uppercase">Student Roster</h3>
-                <input type="text" placeholder="SEARCH..." className="px-4 py-2 border-4 border-black font-bold uppercase text-lg focus:outline-none focus:bg-[#ffe600]" />
+            {/* Live Student Roster */}
+            <div className="glass-panel rounded-2xl sm:rounded-3xl overflow-hidden">
+              <div className="p-4 sm:p-6 border-b border-white/10 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <h3 className="font-bold text-base sm:text-lg text-white">Live Student Roster ({roster.length})</h3>
+                <span className="text-xs text-slate-400">Auto-refreshing every 3 seconds</span>
               </div>
               
               {roster.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 font-bold uppercase text-xl">
+                <div className="p-8 text-center text-slate-400 text-sm">
                   Waiting for students to mark attendance...
                 </div>
               ) : (
-                <div className="divide-y-4 divide-black">
+                <div className="divide-y divide-white/5 max-h-96 overflow-y-auto">
                   {roster.map((student) => (
-                    <div key={student.id} className="p-6 flex items-center justify-between hover:bg-gray-100">
-                      <div className="flex items-center gap-6">
-                        {student.status === 'PRESENT' || student.status === 'LATE' ? (
-                          <div className="w-12 h-12 bg-green-500 border-4 border-black flex items-center justify-center font-black text-white text-2xl">
-                            ✓
-                          </div>
-                        ) : (
-                          <div className="w-12 h-12 bg-red-500 border-4 border-black flex items-center justify-center font-black text-white text-2xl">
-                            ✕
-                          </div>
-                        )}
+                    <div key={student.id} className="p-4 sm:p-5 flex items-center justify-between hover:bg-white/[0.03] transition-colors">
+                      <div className="flex items-center gap-3.5">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm ${
+                          student.status === 'PRESENT' || student.status === 'LATE'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                        }`}>
+                          {student.status === 'PRESENT' || student.status === 'LATE' ? '✓' : '✕'}
+                        </div>
                         <div>
-                          <p className="font-black text-2xl uppercase">{student.name}</p>
-                          <p className="text-lg font-bold text-gray-600">{student.enrollmentNo}</p>
+                          <p className="font-semibold text-sm sm:text-base text-white">{student.name}</p>
+                          <p className="text-xs text-slate-400">{student.enrollmentNo}</p>
                         </div>
                       </div>
                       {student.time && (
-                        <span className="text-2xl font-black bg-[#ffe600] border-2 border-black px-4 py-1">
-                          {new Date(student.time).toLocaleTimeString()}
+                        <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-300">
+                          {new Date(student.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       )}
                     </div>
@@ -235,11 +275,6 @@ export default function FacultyDashboard() {
           </div>
         )}
       </div>
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        .blink { animation: blinker 1s linear infinite; }
-        @keyframes blinker { 50% { opacity: 0; } }
-      `}} />
     </div>
   );
 }
