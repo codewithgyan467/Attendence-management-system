@@ -95,7 +95,7 @@ export class AuthService {
     // Check duplicate phone if provided
     if (cleanPhone) {
       const existingPhone = await this.prisma.user.findFirst({
-        where: { phone: cleanPhone }
+        where: { phone: cleanPhone } as any
       });
       if (existingPhone) {
         throw new BadRequestException('An account with this phone number already exists.');
@@ -178,7 +178,7 @@ export class AuthService {
           phone: cleanPhone,
           password: hashedPassword,
           role: 'STUDENT',
-        }
+        } as any
       });
 
       const studentProfile = await tx.studentProfile.create({
@@ -249,7 +249,7 @@ export class AuthService {
 
     // 1. Rate Limiting Check: Max 4 requests in last 15 minutes
     const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
-    const recentCount = await this.prisma.passwordResetOtp.count({
+    const recentCount = await (this.prisma as any).passwordResetOtp.count({
       where: {
         identifier: cleanIdentifier,
         createdAt: { gte: fifteenMinsAgo }
@@ -268,7 +268,7 @@ export class AuthService {
           { email: cleanIdentifier },
           { phone: identifier.trim() }
         ]
-      }
+      } as any
     });
 
     if (!user) {
@@ -280,12 +280,12 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     // Invalidate previous unused OTPs for this identifier
-    await this.prisma.passwordResetOtp.updateMany({
+    await (this.prisma as any).passwordResetOtp.updateMany({
       where: { identifier: cleanIdentifier, used: false },
       data: { used: true }
     });
 
-    await this.prisma.passwordResetOtp.create({
+    await (this.prisma as any).passwordResetOtp.create({
       data: {
         identifier: cleanIdentifier,
         otp,
@@ -327,7 +327,7 @@ export class AuthService {
     const cleanIdentifier = dto.identifier.trim().toLowerCase();
     const cleanOtp = dto.otp.trim();
 
-    const validRecord = await this.prisma.passwordResetOtp.findFirst({
+    const validRecord = await (this.prisma as any).passwordResetOtp.findFirst({
       where: {
         identifier: cleanIdentifier,
         otp: cleanOtp,
@@ -347,7 +347,7 @@ export class AuthService {
           { email: cleanIdentifier },
           { phone: dto.identifier.trim() }
         ]
-      }
+      } as any
     });
 
     if (!user) {
@@ -362,7 +362,7 @@ export class AuthService {
         data: { password: hashedPassword }
       });
 
-      await tx.passwordResetOtp.update({
+      await (tx as any).passwordResetOtp.update({
         where: { id: validRecord.id },
         data: { used: true }
       });
@@ -388,7 +388,7 @@ export class AuthService {
 
     const cleanPhone = dto.phone.trim();
     const user = await this.prisma.user.findFirst({
-      where: { phone: cleanPhone }
+      where: { phone: cleanPhone } as any
     });
 
     if (!user) {
@@ -478,7 +478,7 @@ export class AuthService {
           { phone: `${countryCode}${rawPhone}` },
           { phone: { contains: last10Digits } }
         ]
-      }
+      } as any
     });
 
     if (!user) {

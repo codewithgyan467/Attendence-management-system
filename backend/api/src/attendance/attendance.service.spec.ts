@@ -232,7 +232,7 @@ describe('AttendanceService (Core Business Logic & Rules Engine)', () => {
       // Verify fail-secure behavior
       expect(result.status).toBe('REVIEW_REQUIRED');
       expect(result.verificationMethod).toBe('FACE_AI_UNAVAILABLE_REVIEW');
-      expect(result.riskFlag).toBe('AI_SERVICE_UNAVAILABLE_REVIEW_NEEDED');
+      expect((result as any).riskFlag).toBe('AI_SERVICE_UNAVAILABLE_REVIEW_NEEDED');
 
       global.fetch = originalFetch;
     });
