@@ -13,6 +13,9 @@ export default function TimetableManagement() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<any | null>(null);
+  const [editingTerm, setEditingTerm] = useState<any | null>(null);
+  const [editingSlot, setEditingSlot] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -206,10 +209,10 @@ export default function TimetableManagement() {
                       </td>
                       <td className="p-3.5 sm:p-4 text-right whitespace-nowrap">
                         <button 
-                          className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 mr-2 transition-colors"
-                          onClick={() => alert(`Edit feature for ${subject.code} coming soon!`)}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 mr-2 transition-colors cursor-pointer"
+                          onClick={() => setEditingSubject(subject)}
                         >
-                          Edit
+                          ✎ Edit
                         </button>
                         <button 
                           className="text-xs font-medium px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors"
@@ -388,10 +391,10 @@ export default function TimetableManagement() {
                       </td>
                       <td className="p-3.5 sm:p-4 text-right whitespace-nowrap">
                         <button 
-                          className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 mr-2 transition-colors"
-                          onClick={() => alert(`Edit feature for ${term.name} coming soon!`)}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 mr-2 transition-colors cursor-pointer"
+                          onClick={() => setEditingTerm(term)}
                         >
-                          Edit
+                          ✎ Edit
                         </button>
                         <button 
                           className="text-xs font-medium px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors"
@@ -600,10 +603,10 @@ export default function TimetableManagement() {
                         </td>
                         <td className="p-3.5 sm:p-4 text-right whitespace-nowrap">
                           <button 
-                            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 mr-2 transition-colors"
-                            onClick={() => alert(`Edit slot feature coming soon!`)}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 mr-2 transition-colors cursor-pointer"
+                            onClick={() => setEditingSlot(tt)}
                           >
-                            Edit
+                            ✎ Edit
                           </button>
                           <button 
                             className="text-xs font-medium px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors"
@@ -635,6 +638,208 @@ export default function TimetableManagement() {
         )}
 
       </div>
+
+      {/* ================= EDIT SUBJECT MODAL ================= */}
+      {editingSubject && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-sky-500/30 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <span>✎</span> Edit Subject Curriculum
+              </h3>
+              <button onClick={() => setEditingSubject(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setSubmitting(true);
+              const formData = new FormData(e.currentTarget);
+              const data = Object.fromEntries(formData.entries());
+              const token = localStorage.getItem('token');
+              const res = await fetch(`${API_URL}/academic/subjects/${editingSubject.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(data)
+              });
+              if (res.ok) {
+                const updated = await res.json();
+                setSubjects(subjects.map((s) => s.id === updated.id ? updated : s));
+                setEditingSubject(null);
+              } else {
+                alert('Failed to update subject');
+              }
+              setSubmitting(false);
+            }} className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Subject Code</label>
+                <input type="text" name="code" defaultValue={editingSubject.code} required className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Subject Name</label>
+                <input type="text" name="name" defaultValue={editingSubject.name} required className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs" />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                <button type="button" onClick={() => setEditingSubject(null)} className="px-3 py-1.5 rounded-xl bg-white/5 text-slate-300 text-xs">Cancel</button>
+                <button type="submit" disabled={submitting} className="px-4 py-1.5 rounded-xl bg-sky-500 text-slate-950 font-bold text-xs">Save Subject</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= EDIT TERM MODAL ================= */}
+      {editingTerm && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-sky-500/30 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <span>✎</span> Edit Academic Term
+              </h3>
+              <button onClick={() => setEditingTerm(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setSubmitting(true);
+              const formData = new FormData(e.currentTarget);
+              const data = Object.fromEntries(formData.entries());
+              const token = localStorage.getItem('token');
+              const res = await fetch(`${API_URL}/academic/terms/${editingTerm.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(data)
+              });
+              if (res.ok) {
+                const updated = await res.json();
+                setTerms(terms.map((t) => t.id === updated.id ? updated : t));
+                setEditingTerm(null);
+              } else {
+                alert('Failed to update term');
+              }
+              setSubmitting(false);
+            }} className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Term Name</label>
+                <input type="text" name="name" defaultValue={editingTerm.name} required className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Academic Year</label>
+                  <input type="number" name="year" defaultValue={editingTerm.year} required className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs" />
+                </div>
+                <div className="flex items-center gap-2 pt-5">
+                  <input type="checkbox" name="isCurrent" id="editIsCurrent" defaultChecked={editingTerm.isCurrent} className="rounded" />
+                  <label htmlFor="editIsCurrent" className="text-xs text-slate-300">Active Term</label>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Start Date</label>
+                  <input type="date" name="startDate" defaultValue={editingTerm.startDate ? new Date(editingTerm.startDate).toISOString().split('T')[0] : ''} required className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">End Date</label>
+                  <input type="date" name="endDate" defaultValue={editingTerm.endDate ? new Date(editingTerm.endDate).toISOString().split('T')[0] : ''} required className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                <button type="button" onClick={() => setEditingTerm(null)} className="px-3 py-1.5 rounded-xl bg-white/5 text-slate-300 text-xs">Cancel</button>
+                <button type="submit" disabled={submitting} className="px-4 py-1.5 rounded-xl bg-sky-500 text-slate-950 font-bold text-xs">Save Term</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= EDIT TIMETABLE SLOT MODAL ================= */}
+      {editingSlot && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-slate-900 border border-sky-500/30 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <span>✎</span> Edit Timetable Class Slot
+              </h3>
+              <button onClick={() => setEditingSlot(null)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setSubmitting(true);
+              const formData = new FormData(e.currentTarget);
+              const data = Object.fromEntries(formData.entries());
+              const token = localStorage.getItem('token');
+              const res = await fetch(`${API_URL}/academic/timetable/${editingSlot.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(data)
+              });
+              if (res.ok) {
+                // Refresh timetable
+                const ttRes = await fetch(`${API_URL}/academic/timetable`, { headers: { Authorization: `Bearer ${token}` } });
+                if (ttRes.ok) setTimetable(await ttRes.json());
+                setEditingSlot(null);
+              } else {
+                alert('Failed to update timetable slot');
+              }
+              setSubmitting(false);
+            }} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Day of Week</label>
+                  <select name="dayOfWeek" defaultValue={editingSlot.dayOfWeek} className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs">
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Class Type</label>
+                  <select name="subjectType" defaultValue={editingSlot.subjectType} className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs">
+                    <option value="THEORY">Theory</option>
+                    <option value="LAB">Lab</option>
+                    <option value="PRACTICAL">Practical</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Start Time</label>
+                  <input type="text" name="startTime" defaultValue={editingSlot.startTime} placeholder="HH:MM" required className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs font-mono" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">End Time</label>
+                  <input type="text" name="endTime" defaultValue={editingSlot.endTime} placeholder="HH:MM" required className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs font-mono" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Assigned Section</label>
+                  <select name="sectionId" defaultValue={editingSlot.sectionId} className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs">
+                    {sections.map((s) => (
+                      <option key={s.id} value={s.id}>{s.subject?.name} - {s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1">Assigned Classroom</label>
+                  <select name="classroomId" defaultValue={editingSlot.classroomId} className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs">
+                    {classrooms.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                <button type="button" onClick={() => setEditingSlot(null)} className="px-3 py-1.5 rounded-xl bg-white/5 text-slate-300 text-xs">Cancel</button>
+                <button type="submit" disabled={submitting} className="px-4 py-1.5 rounded-xl bg-sky-500 text-slate-950 font-bold text-xs">Save Slot</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

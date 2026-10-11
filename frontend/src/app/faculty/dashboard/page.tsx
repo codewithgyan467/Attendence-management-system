@@ -8,6 +8,7 @@ export default function FacultyDashboard() {
   const [token, setToken] = useState<string | null>(null);
   const [scheduleData, setScheduleData] = useState<any | null>(null);
   const [facultyName, setFacultyName] = useState('Dr. S. Bordoloi (SB)');
+  const [userProfile, setUserProfile] = useState<any | null>(null);
   const [todayClasses, setTodayClasses] = useState<any[]>([]);
   const [roster, setRoster] = useState<any[]>([]);
   const [simDay, setSimDay] = useState<number | null>(null);
@@ -53,6 +54,23 @@ export default function FacultyDashboard() {
     }
   }, []);
 
+  const fetchProfile = async (authToken: string) => {
+    try {
+      const res = await fetch(`${API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserProfile(data);
+        if (data.firstName) {
+          setFacultyName(`${data.firstName} ${data.lastName}`);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load faculty profile:', e);
+    }
+  };
+
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     if (!storedToken) {
@@ -60,6 +78,7 @@ export default function FacultyDashboard() {
       return;
     }
     setToken(storedToken);
+    fetchProfile(storedToken);
     fetchScheduleAndClasses(storedToken, simDay, simTime);
   }, [fetchScheduleAndClasses, simDay, simTime]);
 
@@ -106,44 +125,62 @@ export default function FacultyDashboard() {
 
       <div className="relative z-10 max-w-5xl mx-auto space-y-6 sm:space-y-8">
         
-        {/* Mobile Faculty Profile Strip */}
-        <div className="flex md:hidden items-center justify-between p-3.5 rounded-2xl glass-panel border border-white/10">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-purple-500/15 text-purple-300 border border-purple-500/30 mb-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              {facultyName}
+        {/* Interactive Faculty Profile Header Card */}
+        <div className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-white/10 relative overflow-hidden">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            <div className="flex items-center gap-4 sm:gap-5">
+              {/* Faculty Avatar */}
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-800 border-2 border-purple-400/40 overflow-hidden shadow-xl flex items-center justify-center font-bold text-xl text-purple-200 shrink-0">
+                <span>{userProfile?.firstName?.[0] || 'D'}{userProfile?.lastName?.[0] || 'R'}</span>
+              </div>
+
+              {/* Faculty Details */}
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : facultyName}
+                  </h1>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    👨‍🏫 FACULTY
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                    Active Session Lead
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-400">
+                  Assam Engineering College • Department of Computer Applications
+                </p>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300 pt-1 font-mono">
+                  <span>Emp ID: <strong className="text-amber-300">{userProfile?.facultyProfile?.employeeId || 'FAC-MCA-01'}</strong></span>
+                  <span>•</span>
+                  <span>Email: <strong className="text-purple-300">{userProfile?.email || 'faculty@aec.ac.in'}</strong></span>
+                  {userProfile?.phone && (
+                    <>
+                      <span>•</span>
+                      <span>Phone: <strong className="text-slate-300">{userProfile.phone}</strong></span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <p className="text-[11px] text-slate-400">AEC MCA Department • Faculty</p>
+
+            {/* Timetable Status & Logout */}
+            <div className="flex items-center gap-3 self-end md:self-center">
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                Timetable Enforced
+              </span>
+              <button 
+                onClick={handleLogout}
+                className="px-4 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+              >
+                Logout
+              </button>
+            </div>
           </div>
-          <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
-            Routine Enforced
-          </span>
         </div>
-
-        {/* Desktop Header */}
-        <header className="hidden md:flex glass-panel rounded-2xl p-4 sm:p-6 justify-between items-center gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold uppercase bg-purple-500/15 text-purple-300 border border-purple-500/30 mb-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              Faculty Portal
-            </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{facultyName}</h1>
-            <p className="text-xs sm:text-sm text-slate-400">Assam Engineering College • Department of Computer Applications</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs sm:text-sm font-semibold text-emerald-300 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              Timetable Enforced
-            </span>
-            <button 
-              onClick={handleLogout}
-              className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs sm:text-sm font-medium transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        </header>
 
         {/* Live Clock & Routine Calendar Component */}
         <ClockWidget 

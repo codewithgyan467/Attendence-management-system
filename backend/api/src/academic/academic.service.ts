@@ -225,4 +225,44 @@ export class AcademicService {
       }
     });
   }
+
+  // --- Updates ---
+  async updateSubject(id: string, data: any) {
+    return this.prisma.subject.update({
+      where: { id },
+      data: {
+        ...(data.code && { code: data.code.trim() }),
+        ...(data.name && { name: data.name.trim() }),
+        ...(data.departmentId && { departmentId: data.departmentId })
+      }
+    });
+  }
+
+  async updateTerm(id: string, data: any) {
+    return this.prisma.academicTerm.update({
+      where: { id },
+      data: {
+        ...(data.name && { name: data.name.trim() }),
+        ...(data.year && { year: parseInt(data.year, 10) }),
+        ...(data.startDate && { startDate: new Date(data.startDate) }),
+        ...(data.endDate && { endDate: new Date(data.endDate) }),
+        ...(data.isCurrent !== undefined && { isCurrent: data.isCurrent === 'on' || data.isCurrent === true })
+      }
+    });
+  }
+
+  async updateTimetableRecord(id: string, data: any) {
+    return this.prisma.timetableEntry.update({
+      where: { id },
+      data: {
+        ...(data.academicTermId && { academicTermId: data.academicTermId }),
+        ...(data.sectionId && { sectionId: data.sectionId }),
+        ...(data.classroomId && { classroomId: data.classroomId }),
+        ...(data.dayOfWeek !== undefined && { dayOfWeek: parseInt(data.dayOfWeek, 10) }),
+        ...(data.startTime && { startTime: data.startTime }),
+        ...(data.endTime && { endTime: data.endTime }),
+        ...(data.subjectType && { subjectType: data.subjectType })
+      }
+    });
+  }
 }

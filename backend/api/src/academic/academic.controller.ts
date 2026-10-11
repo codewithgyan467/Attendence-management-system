@@ -64,6 +64,24 @@ export class AcademicController {
   }
 
   @Roles('ADMIN')
+  @Put('subjects/:id')
+  updateSubject(@Param('id') id: string, @Body() body: any) {
+    return this.academicService.updateSubject(id, body);
+  }
+
+  @Roles('ADMIN')
+  @Put('terms/:id')
+  updateTerm(@Param('id') id: string, @Body() body: any) {
+    return this.academicService.updateTerm(id, body);
+  }
+
+  @Roles('ADMIN')
+  @Put('timetable/:id')
+  updateTimetableRecord(@Param('id') id: string, @Body() body: any) {
+    return this.academicService.updateTimetableRecord(id, body);
+  }
+
+  @Roles('ADMIN')
   @Delete('subjects/:id')
   deleteSubject(@Param('id') id: string) {
     return this.academicService.deleteSubject(id);
