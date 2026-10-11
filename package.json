@@ -13,6 +13,10 @@
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run start:dev --workspace=api",
     "start:frontend": "npm run start --workspace=frontend",
-    "start:backend": "npm run start:prod --workspace=api"
+    "start:backend": "npm run start:prod --workspace=api",
+    "start:prod": "npm run start:prod --workspace=api"
+  },
+  "prisma": {
+    "schema": "backend/api/prisma/schema.prisma"
   }
 }
