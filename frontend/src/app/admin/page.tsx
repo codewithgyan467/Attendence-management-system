@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 type Record = {
   id: string;
@@ -21,44 +22,85 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <header className="border-b-8 border-black pb-4 mb-8 flex justify-between items-end">
+    <div className="min-h-screen p-4 sm:p-8 max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="glass-panel rounded-2xl p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-5xl font-extrabold uppercase tracking-tighter">Admin Panel</h1>
-          <p className="text-xl font-bold mt-2 bg-black text-white inline-block px-2 border-2 border-black">Master Control</p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 mb-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            Real-Time Monitor
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Admin Live Records</h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">Manual overrides & verification stream</p>
         </div>
-      </header>
+        <Link 
+          href="/admin/dashboard" 
+          className="glass-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center whitespace-nowrap"
+        >
+          Go to Full Dashboard →
+        </Link>
+      </div>
 
-      <div className="brutal-card mb-8">
-        <h2 className="text-3xl font-extrabold uppercase mb-6 bg-[#ffe600] inline-block px-4 py-1 border-4 border-black">Live Attendance Records</h2>
+      <div className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-8 space-y-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Live Attendance Records</h2>
         
-        <table className="w-full text-left border-collapse border-4 border-black font-bold">
-          <thead>
-            <tr className="bg-black text-white">
-              <th className="p-4 border-2 border-black uppercase">Student</th>
-              <th className="p-4 border-2 border-black uppercase">Status</th>
-              <th className="p-4 border-2 border-black uppercase">Method</th>
-              <th className="p-4 border-2 border-black uppercase">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {records.map((r) => (
-              <tr key={r.id} className="border-b-4 border-black hover:bg-slate-100">
-                <td className="p-4 border-r-4 border-black text-xl">{r.student}</td>
-                <td className={`p-4 border-r-4 border-black text-xl ${r.status === 'PRESENT' ? 'text-green-600' : 'text-red-600'}`}>{r.status}</td>
-                <td className="p-4 border-r-4 border-black">{r.method}</td>
-                <td className="p-4 flex gap-2">
-                  <button onClick={() => overrideStatus(r.id, 'PRESENT')} className="brutal-btn py-2 px-4 text-sm bg-green-400 hover:bg-green-500">
-                    SET PRESENT
-                  </button>
-                  <button onClick={() => overrideStatus(r.id, 'ABSENT')} className="brutal-btn py-2 px-4 text-sm bg-red-400 hover:bg-red-500 text-white hover:text-white">
-                    SET ABSENT
-                  </button>
-                </td>
+        <div className="overflow-x-auto w-full rounded-2xl border border-white/10 bg-slate-950/40">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white/[0.04] border-b border-white/10 text-slate-300 text-xs font-semibold uppercase tracking-wider">
+                <th className="p-3.5 sm:p-4">Student</th>
+                <th className="p-3.5 sm:p-4">Status</th>
+                <th className="p-3.5 sm:p-4">Verification Method</th>
+                <th className="p-3.5 sm:p-4 text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-sm">
+              {records.map((r) => (
+                <tr key={r.id} className="hover:bg-white/[0.04] transition-colors">
+                  <td className="p-3.5 sm:p-4 font-semibold text-white">
+                    {r.student}
+                  </td>
+                  <td className="p-3.5 sm:p-4">
+                    {r.status === 'PRESENT' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        PRESENT
+                      </span>
+                    ) : r.status === 'ABSENT' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                        ABSENT
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        {r.status}
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-3.5 sm:p-4 font-mono text-xs sm:text-sm text-slate-300">
+                    <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10">
+                      {r.method}
+                    </span>
+                  </td>
+                  <td className="p-3.5 sm:p-4 text-right whitespace-nowrap">
+                    <button 
+                      onClick={() => overrideStatus(r.id, 'PRESENT')} 
+                      className="text-xs font-medium px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 mr-2 transition-colors"
+                    >
+                      Set Present
+                    </button>
+                    <button 
+                      onClick={() => overrideStatus(r.id, 'ABSENT')} 
+                      className="text-xs font-medium px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors"
+                    >
+                      Set Absent
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
