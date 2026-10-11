@@ -252,4 +252,12 @@ model AuditLog {
   createdAt   DateTime @default(now())
 }
 
+model Holiday {
+  id          String   @id @default(uuid())
+  title       String
+  date        String   // "YYYY-MM-DD" formatted date string for easy matching
+  description String?
+  createdAt   DateTime @default(now())
+}
+
 

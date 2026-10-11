@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { AttendanceService } from './attendance.service.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/roles.guard.js';
@@ -13,6 +13,26 @@ export class AttendanceController {
     private prisma: PrismaService
   ) {}
 
+  // --- Live Calendar, Clock & Timetable Session Endpoint ---
+  @Get('live-schedule')
+  async getLiveSchedule(
+    @Query('simulateDay') simulateDay?: string,
+    @Query('simulateTime') simulateTime?: string,
+    @Query('semester') semester?: string
+  ) {
+    return this.attendanceService.getLiveScheduleSession({
+      simulateDay: simulateDay !== undefined ? Number(simulateDay) : undefined,
+      simulateTime,
+      semester: semester ? Number(semester) : undefined
+    });
+  }
+
+  @Get('clock')
+  async getClock() {
+    return this.attendanceService.getLiveClockData();
+  }
+
+  // --- Faculty Actions ---
   @Roles('FACULTY')
   @Get('faculty/timetable')
   async getFacultyTimetable(@Request() req: any) {
@@ -21,12 +41,10 @@ export class AttendanceController {
     return this.attendanceService.getFacultyTimetable(faculty.id);
   }
 
-  @Roles('FACULTY')
+  @Roles('FACULTY', 'ADMIN')
   @Get('session/:id/attendance')
   async getSessionAttendance(@Param('id') sessionId: string, @Request() req: any) {
-    const faculty = await this.prisma.facultyProfile.findUnique({ where: { userId: req.user.userId } });
-    if (!faculty) throw new BadRequestException('Faculty profile not found');
-    return this.attendanceService.getSessionAttendance(sessionId, faculty.id);
+    return this.attendanceService.getSessionAttendance(sessionId);
   }
 
   @Roles('FACULTY')
@@ -45,6 +63,7 @@ export class AttendanceController {
     return this.attendanceService.endSession(sessionId, faculty.id);
   }
 
+  // --- Student Actions ---
   @Roles('STUDENT')
   @Get('sessions/active')
   async getActiveSessions(@Request() req: any) {
@@ -62,5 +81,40 @@ export class AttendanceController {
       ...body,
       studentProfileId: student.id
     });
+  }
+
+  // --- Admin Master Actions ---
+  @Roles('ADMIN')
+  @Get('admin/records')
+  async getAllRecords(
+    @Query('date') date?: string,
+    @Query('status') status?: string
+  ) {
+    return this.attendanceService.getAllRecords({ date, status });
+  }
+
+  @Roles('ADMIN')
+  @Post('admin/override')
+  async adminOverrideRecord(@Body() body: any) {
+    return this.attendanceService.adminOverrideRecord(body);
+  }
+
+  @Roles('ADMIN')
+  @Get('admin/holidays')
+  async getHolidays() {
+    return this.attendanceService.getHolidays();
+  }
+
+  @Roles('ADMIN')
+  @Post('admin/holidays')
+  async addHoliday(@Body() body: { title: string; date: string; description?: string }) {
+    if (!body.title || !body.date) throw new BadRequestException('Title and date required');
+    return this.attendanceService.addHoliday(body);
+  }
+
+  @Roles('ADMIN')
+  @Delete('admin/holidays/:id')
+  async deleteHoliday(@Param('id') id: string) {
+    return this.attendanceService.deleteHoliday(id);
   }
 }
