@@ -1,40 +1,105 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
 
 export default function FacultyLayout({ children }: { children: React.ReactNode }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
-    <div className="flex h-screen overflow-hidden w-full">
-      <aside className="w-72 h-full glass-panel flex flex-col z-20 shrink-0">
-        <div className="p-6 border-b border-slate-700/50 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+    <div className="flex flex-col md:flex-row min-h-screen w-full bg-[#070b14] bg-grid-mesh text-slate-100 overflow-x-hidden">
+      
+      {/* Mobile Top Header */}
+      <header className="flex md:hidden items-center justify-between px-4 py-3 border-b border-white/10 glass-panel sticky top-0 z-30 backdrop-blur-xl">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow-md shadow-purple-500/20">
+            A
           </div>
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-            Faculty Portal
-          </h1>
+          <div>
+            <h1 className="text-sm font-bold text-white leading-tight">Faculty Portal</h1>
+            <p className="text-[10px] text-slate-400">Assam Engineering College</p>
+          </div>
         </div>
-        
-        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2 custom-scrollbar">
-          <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">My Classes</p>
-          <Link href="/faculty/dashboard" className="nav-item active">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-            <span>Live Session</span>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            onClick={() => localStorage.removeItem('token')}
+            className="text-xs px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 font-medium"
+          >
+            Sign Out
           </Link>
-          <a href="#" className="nav-item">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-            <span>Attendance Reports</span>
-          </a>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 text-sm"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? '✕' : '☰'}
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Dropdown Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden glass-panel border-b border-white/10 px-4 py-3 space-y-2 z-30 sticky top-[53px]">
+          <Link
+            href="/faculty/dashboard"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-xl text-xs font-semibold bg-white/10 text-white"
+          >
+            📊 Live Roster & Lectures
+          </Link>
+          <div className="text-[11px] text-slate-400 px-3 py-1">
+            Department of Computer Applications • AEC
+          </div>
+        </div>
+      )}
+
+      {/* Desktop Sidebar (hidden on mobile, visible on md+) */}
+      <aside className="hidden md:flex w-64 min-h-screen glass-panel flex-col z-20 shrink-0 border-r border-white/10 justify-between">
+        <div>
+          <div className="p-6 border-b border-white/10 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-white tracking-tight">Faculty Portal</h1>
+              <p className="text-[11px] text-slate-400">Assam Engg College</p>
+            </div>
+          </div>
+          
+          <div className="py-6 px-4 space-y-2">
+            <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">My Classes</p>
+            <Link 
+              href="/faculty/dashboard" 
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white/10 text-white border border-white/10 shadow-sm"
+            >
+              <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span>Active Lecture</span>
+            </Link>
+          </div>
         </div>
         
-        <div className="p-4 border-t border-slate-700/50">
-          <Link href="/faculty" className="flex items-center gap-3 p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-            <span className="font-medium">Sign Out</span>
+        <div className="p-4 border-t border-white/10">
+          <Link 
+            href="/" 
+            onClick={() => localStorage.removeItem('token')}
+            className="flex items-center gap-2.5 p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-medium border border-rose-500/20 transition-colors justify-center"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Sign Out</span>
           </Link>
         </div>
       </aside>
       
-      <main className="flex-1 h-full overflow-y-auto relative z-10">
-        <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-emerald-500/10 to-transparent -z-10"></div>
+      {/* Main Content Area (100% width on mobile) */}
+      <main className="flex-1 min-w-0 w-full overflow-y-auto">
         {children}
       </main>
     </div>

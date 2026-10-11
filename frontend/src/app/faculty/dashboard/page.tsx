@@ -106,8 +106,22 @@ export default function FacultyDashboard() {
 
       <div className="relative z-10 max-w-5xl mx-auto space-y-6 sm:space-y-8">
         
-        {/* Header */}
-        <header className="glass-panel rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        {/* Mobile Faculty Profile Strip */}
+        <div className="flex md:hidden items-center justify-between p-3.5 rounded-2xl glass-panel border border-white/10">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-purple-500/15 text-purple-300 border border-purple-500/30 mb-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              {facultyName}
+            </div>
+            <p className="text-[11px] text-slate-400">AEC MCA Department • Faculty</p>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+            Routine Enforced
+          </span>
+        </div>
+
+        {/* Desktop Header */}
+        <header className="hidden md:flex glass-panel rounded-2xl p-4 sm:p-6 justify-between items-center gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold uppercase bg-purple-500/15 text-purple-300 border border-purple-500/30 mb-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>

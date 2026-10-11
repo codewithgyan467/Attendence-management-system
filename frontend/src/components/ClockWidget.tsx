@@ -93,8 +93,8 @@ export default function ClockWidget({ scheduleData, onSimulationChange, selected
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-start">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-white/5 border border-white/10 text-slate-300">
+        <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-start">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-white/5 border border-white/10 text-slate-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             Sync: {scheduleData?.clockSource || 'WorldTime API'}
           </span>
@@ -117,7 +117,7 @@ export default function ClockWidget({ scheduleData, onSimulationChange, selected
                   onSimulationChange(5, '14:20'); // Friday 2:20 PM OS
                 }
               }}
-              className="text-xs bg-slate-900 border border-indigo-500/30 rounded-xl px-2.5 py-1.5 text-indigo-200 font-medium cursor-pointer"
+              className="text-[11px] sm:text-xs bg-slate-900 border border-indigo-500/30 rounded-xl px-2.5 py-1 text-indigo-200 font-medium cursor-pointer"
             >
               <option value="live">⚡ Live Real Clock</option>
               <option value="tue-os">🧪 Test: Tue 8-9am OS (Sem 1)</option>
@@ -155,7 +155,7 @@ export default function ClockWidget({ scheduleData, onSimulationChange, selected
             </p>
           </div>
 
-          <div className="bg-slate-950/80 px-4 py-2.5 rounded-xl border border-indigo-500/30 text-right shrink-0">
+          <div className="bg-slate-950/80 px-4 py-2.5 rounded-xl border border-indigo-500/30 text-left sm:text-right w-full sm:w-auto shrink-0">
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
               Time Remaining in Slot:
             </span>
