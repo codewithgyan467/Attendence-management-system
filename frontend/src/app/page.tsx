@@ -33,6 +33,8 @@ export default function LoginPage() {
   // Forgot password state
   const [forgotIdentifier, setForgotIdentifier] = useState('');
   const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+  const [forgotMethod, setForgotMethod] = useState<'email' | 'phone_email'>('email');
+  const [phoneEmailVerifiedUrl, setPhoneEmailVerifiedUrl] = useState<string | null>(null);
   const [forgotOtp, setForgotOtp] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
@@ -65,6 +67,26 @@ export default function LoginPage() {
       stopCamera();
     };
   }, []);
+
+  // Phone.Email listener and script loading
+  useEffect(() => {
+    if (viewMode === 'forgot' && forgotMethod === 'phone_email') {
+      (window as any).phoneEmailListener = (userObj: { user_json_url: string }) => {
+        if (!userObj?.user_json_url) return;
+        setPhoneEmailVerifiedUrl(userObj.user_json_url);
+        setError('');
+        setSuccessMsg('Phone verified successfully! Now enter your new password below.');
+      };
+
+      if (!document.getElementById('phone-email-script')) {
+        const script = document.createElement('script');
+        script.id = 'phone-email-script';
+        script.src = 'https://www.phone.email/sign_in_button_v1.js';
+        script.async = true;
+        document.body.appendChild(script);
+      }
+    }
+  }, [viewMode, forgotMethod]);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -303,6 +325,50 @@ export default function LoginPage() {
       setOtpPreviewMsg(null);
     } catch (err: any) {
       setError(err.message || 'Failed to reset password');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handlePhoneEmailResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+    if (forgotNewPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/verify-phone-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_json_url: phoneEmailVerifiedUrl,
+          newPassword: forgotNewPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Phone.Email reset failed');
+      }
+
+      setSuccessMsg(data.message || 'Password successfully reset via Phone.Email! You can now login.');
+      setTimeout(() => {
+        setViewMode('login');
+        setForgotStep(1);
+        setPhoneEmailVerifiedUrl(null);
+        setForgotNewPassword('');
+        setForgotConfirmPassword('');
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'Failed to complete Phone.Email password reset.');
     } finally {
       setForgotLoading(false);
     }
@@ -893,105 +959,213 @@ export default function LoginPage() {
                   <div className="mb-4">
                     <h3 className="text-sm font-bold text-white">Reset Account Password</h3>
                     <p className="text-[11px] text-slate-400">
-                      Recover access using your registered Email or Phone OTP verification.
+                      Choose your preferred verification method to recover your account:
                     </p>
                   </div>
 
-                  {forgotStep === 1 && (
-                    <form onSubmit={handleRequestOtp} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                          Registered Email or Phone
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. student@aec.ac.in or 9876543210"
-                          className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-slate-950/80 border-white/15"
-                          value={forgotIdentifier}
-                          onChange={(e) => setForgotIdentifier(e.target.value)}
-                        />
-                      </div>
+                  {/* Method Selector Tabs */}
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-white/5 rounded-xl border border-white/10 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => { setForgotMethod('email'); setForgotStep(1); }}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
+                        forgotMethod === 'email'
+                          ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      📧 Email OTP (Nodemailer)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setForgotMethod('phone_email'); }}
+                      className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
+                        forgotMethod === 'phone_email'
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      📱 Phone.Email Verification
+                    </button>
+                  </div>
 
-                      <button
-                        type="submit"
-                        disabled={forgotLoading}
-                        className="shimmer-btn glass-btn w-full py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
-                      >
-                        {forgotLoading ? (
-                          <span className="inline-flex items-center gap-2">
-                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                            Generating OTP...
-                          </span>
-                        ) : (
-                          <span>Send Verification OTP →</span>
-                        )}
-                      </button>
-                    </form>
+                  {/* METHOD 1: EMAIL OTP */}
+                  {forgotMethod === 'email' && (
+                    <>
+                      {forgotStep === 1 && (
+                        <form onSubmit={handleRequestOtp} className="space-y-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                              Registered Email Address
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              placeholder="e.g. student@aec.ac.in"
+                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-slate-950/80 border-white/15"
+                              value={forgotIdentifier}
+                              onChange={(e) => setForgotIdentifier(e.target.value)}
+                            />
+                            <p className="text-[11px] text-slate-500 mt-1">
+                              A 6-digit code will be sent to your inbox. Valid for 5 minutes.
+                            </p>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={forgotLoading}
+                            className="shimmer-btn glass-btn w-full py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
+                          >
+                            {forgotLoading ? (
+                              <span className="inline-flex items-center gap-2">
+                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                Sending Email OTP...
+                              </span>
+                            ) : (
+                              <span>Send Verification OTP →</span>
+                            )}
+                          </button>
+                        </form>
+                      )}
+
+                      {forgotStep === 2 && (
+                        <form onSubmit={handleResetPassword} className="space-y-3.5">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                              6-Digit OTP Code
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              maxLength={6}
+                              placeholder="123456"
+                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm font-mono text-center tracking-widest text-sky-300 bg-slate-950/80 border-white/15"
+                              value={forgotOtp}
+                              onChange={(e) => setForgotOtp(e.target.value)}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                              New Password
+                            </label>
+                            <input
+                              type="password"
+                              required
+                              placeholder="••••••••••••"
+                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white bg-slate-950/80 border-white/15"
+                              value={forgotNewPassword}
+                              onChange={(e) => setForgotNewPassword(e.target.value)}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                              Confirm New Password
+                            </label>
+                            <input
+                              type="password"
+                              required
+                              placeholder="••••••••••••"
+                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white bg-slate-950/80 border-white/15"
+                              value={forgotConfirmPassword}
+                              onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-2">
+                            <button
+                              type="button"
+                              onClick={() => setForgotStep(1)}
+                              className="px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-300 border border-white/10"
+                            >
+                              Back
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={forgotLoading}
+                              className="shimmer-btn glass-btn flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
+                            >
+                              {forgotLoading ? 'Verifying...' : 'Set New Password & Sign In'}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </>
                   )}
 
-                  {forgotStep === 2 && (
-                    <form onSubmit={handleResetPassword} className="space-y-3.5">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                          6-Digit OTP Code
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          maxLength={6}
-                          placeholder="123456"
-                          className="glass-input w-full px-4 py-2.5 rounded-xl text-sm font-mono text-center tracking-widest text-sky-300 bg-slate-950/80 border-white/15"
-                          value={forgotOtp}
-                          onChange={(e) => setForgotOtp(e.target.value)}
-                        />
-                      </div>
+                  {/* METHOD 2: PHONE.EMAIL VERIFICATION */}
+                  {forgotMethod === 'phone_email' && (
+                    <div className="space-y-4">
+                      {!phoneEmailVerifiedUrl ? (
+                        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-3">
+                          <p className="text-xs text-emerald-200">
+                            Verify your phone number with 1-click using the Phone.Email widget:
+                          </p>
+                          <div className="flex justify-center py-2">
+                            <div
+                              className="pe_signin_button"
+                              data-client-id="18664955320259466526"
+                            ></div>
+                          </div>
+                          <p className="text-[11px] text-slate-400">
+                            Once verified, you will be prompted to set your new password immediately.
+                          </p>
+                        </div>
+                      ) : (
+                        <form onSubmit={handlePhoneEmailResetPassword} className="space-y-3.5">
+                          <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 font-medium">
+                            <span>✅</span>
+                            <span>Phone Verified Successfully! Set your new password:</span>
+                          </div>
 
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                          New Password
-                        </label>
-                        <input
-                          type="password"
-                          required
-                          placeholder="••••••••••••"
-                          className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white bg-slate-950/80 border-white/15"
-                          value={forgotNewPassword}
-                          onChange={(e) => setForgotNewPassword(e.target.value)}
-                        />
-                      </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                              New Password
+                            </label>
+                            <input
+                              type="password"
+                              required
+                              placeholder="••••••••••••"
+                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white bg-slate-950/80 border-white/15"
+                              value={forgotNewPassword}
+                              onChange={(e) => setForgotNewPassword(e.target.value)}
+                            />
+                          </div>
 
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                          Confirm New Password
-                        </label>
-                        <input
-                          type="password"
-                          required
-                          placeholder="••••••••••••"
-                          className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white bg-slate-950/80 border-white/15"
-                          value={forgotConfirmPassword}
-                          onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                        />
-                      </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                              Confirm New Password
+                            </label>
+                            <input
+                              type="password"
+                              required
+                              placeholder="••••••••••••"
+                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white bg-slate-950/80 border-white/15"
+                              value={forgotConfirmPassword}
+                              onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                            />
+                          </div>
 
-                      <div className="flex items-center gap-2 pt-2">
-                        <button
-                          type="button"
-                          onClick={() => setForgotStep(1)}
-                          className="px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-300 border border-white/10"
-                        >
-                          Back
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={forgotLoading}
-                          className="shimmer-btn glass-btn flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
-                        >
-                          {forgotLoading ? 'Verifying...' : 'Set New Password & Sign In'}
-                        </button>
-                      </div>
-                    </form>
+                          <div className="flex items-center gap-2 pt-2">
+                            <button
+                              type="button"
+                              onClick={() => setPhoneEmailVerifiedUrl(null)}
+                              className="px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-300 border border-white/10"
+                            >
+                              Re-verify Phone
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={forgotLoading}
+                              className="shimmer-btn glass-btn flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
+                            >
+                              {forgotLoading ? 'Updating Password...' : 'Save New Password & Sign In'}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

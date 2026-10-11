@@ -44,4 +44,10 @@ export class AuthController {
   async verifyPhoneToken(@Body() phoneDto: { phoneToken?: string; phone: string; newPassword?: string }) {
     return this.authService.verifyPhoneToken(phoneDto);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('verify-phone-email')
+  async verifyPhoneEmail(@Body() dto: { user_json_url: string; newPassword?: string; loginOnly?: boolean }) {
+    return this.authService.verifyPhoneEmailJsonUrl(dto);
+  }
 }

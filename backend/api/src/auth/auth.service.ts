@@ -428,4 +428,114 @@ export class AuthService {
       message: 'Phone number verified successfully.'
     };
   }
+
+  async verifyPhoneEmailJsonUrl(dto: { user_json_url: string; newPassword?: string; loginOnly?: boolean }) {
+    if (!dto.user_json_url || typeof dto.user_json_url !== 'string') {
+      throw new BadRequestException('USER_JSON_URL_REQUIRED: Invalid Phone.Email verification response.');
+    }
+
+    // SSRF Protection: ensure URL is from phone.email domain
+    try {
+      const parsedUrl = new URL(dto.user_json_url);
+      if (!parsedUrl.hostname.endsWith('phone.email')) {
+        throw new BadRequestException('INVALID_DOMAIN: Verification URL must be from phone.email domain.');
+      }
+    } catch {
+      throw new BadRequestException('MALFORMED_URL: Invalid verification URL format.');
+    }
+
+    // Fetch phone data from the Phone.Email JSON URL
+    let phoneData: {
+      user_country_code?: string;
+      user_phone_number?: string;
+      user_first_name?: string;
+      user_last_name?: string;
+    };
+
+    try {
+      const res = await fetch(dto.user_json_url);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch from Phone.Email: HTTP ${res.status}`);
+      }
+      phoneData = await res.json() as any;
+    } catch (err: any) {
+      throw new BadRequestException(`Failed to retrieve verified phone data: ${err.message}`);
+    }
+
+    const rawPhone = phoneData.user_phone_number || '';
+    const countryCode = phoneData.user_country_code || '';
+    const cleanPhone = rawPhone.replace(/\D/g, ''); // Digits only
+
+    if (!cleanPhone) {
+      throw new BadRequestException('PHONE_NOT_RETURNED: Phone.Email did not return a valid phone number.');
+    }
+
+    // Find user in database matching this phone number
+    const last10Digits = cleanPhone.slice(-10);
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { phone: rawPhone },
+          { phone: cleanPhone },
+          { phone: `${countryCode}${rawPhone}` },
+          { phone: { contains: last10Digits } }
+        ]
+      }
+    });
+
+    if (!user) {
+      throw new NotFoundException(
+        `No account found registered with phone number ${countryCode} ${rawPhone}. Please ensure your account has this phone number registered.`
+      );
+    }
+
+    // If newPassword is provided, reset the password
+    if (dto.newPassword) {
+      if (dto.newPassword.length < 6) {
+        throw new BadRequestException('Password must be at least 6 characters long.');
+      }
+      const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword }
+      });
+
+      await this.prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'PASSWORD_RESET_PHONE_EMAIL_VERIFIED',
+          details: `Password reset verified via Phone.Email for ${countryCode} ${rawPhone}`
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Password successfully reset via Phone.Email verification! You can now login with your new password.',
+        phone: rawPhone,
+        countryCode
+      };
+    }
+
+    // If loginOnly or verifying identity, return JWT login token
+    const token = this.jwtService.sign({
+      email: user.email,
+      sub: user.id,
+      role: user.role
+    });
+
+    return {
+      success: true,
+      message: 'Phone verification successful!',
+      phone: rawPhone,
+      countryCode,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName
+      },
+      access_token: token
+    };
+  }
 }
