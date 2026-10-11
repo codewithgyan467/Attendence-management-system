@@ -240,7 +240,8 @@ export class AttendanceService {
       // If client provided a base64 image, forward to AI service
       if ((data as any).base64Image) {
         try {
-          const aiRes = await fetch('http://127.0.0.1:8000/verify/liveness', {
+          const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000';
+          const aiRes = await fetch(`${aiServiceUrl}/verify/liveness`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

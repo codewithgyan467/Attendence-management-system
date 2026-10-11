@@ -3,22 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "apps/web",
-    "apps/admin",
-    "services/api",
-    "packages/models",
-    "packages/api-client"
+    "frontend",
+    "backend/api"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "build:web": "npm run build --workspace=web",
-    "build:admin": "npm run build --workspace=admin",
-    "build:api": "npm run build --workspace=api",
-    "dev:web": "npm run dev --workspace=web",
-    "dev:admin": "npm run dev --workspace=admin",
-    "dev:api": "npm run start:dev --workspace=api",
-    "start:web": "npm run start --workspace=web",
-    "start:admin": "npm run start --workspace=admin",
-    "start:api": "npm run start:prod --workspace=api"
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=api",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run start:dev --workspace=api",
+    "start:frontend": "npm run start --workspace=frontend",
+    "start:backend": "npm run start:prod --workspace=api"
   }
 }
