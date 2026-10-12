@@ -8,6 +8,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navLinks = [
     { href: '/admin/dashboard', label: '📊 Overview', exact: true },
+    { href: '/admin/dashboard/reports', label: '📋 Attendance Register & Reports' },
     { href: '/admin/dashboard/institutions', label: '🏛️ Universities & Depts' },
     { href: '/admin/dashboard/timetable', label: '📅 Timetable & Routine' },
     { href: '/admin/dashboard/users', label: '👥 User Management' },

@@ -201,6 +201,33 @@ export default function FacultyDashboard() {
           </div>
         </div>
 
+        {/* Attendance Register & NC/DC Banner */}
+        <div className="card shadow-sm border-0 rounded-4 mb-4 bg-white border-start border-4 border-primary">
+          <div className="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+              <div className="d-flex align-items-center gap-2 mb-1">
+                <span className="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">
+                  📋 School Register Mode
+                </span>
+                <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill">
+                  NC & DC Tracking
+                </span>
+              </div>
+              <h5 className="fw-bold mb-1 text-dark">Subject Attendance Registers & Student Compliance</h5>
+              <p className="text-muted small mb-0">
+                View everyday class registers, weekly summaries, and monthly attendance grids. Identify Non-Collegiate (NC) and Dis-Collegiate (DC) students, and download official Excel, Word, or PDF reports.
+              </p>
+            </div>
+            <a
+              href="/faculty/dashboard/reports"
+              className="btn btn-primary rounded-pill px-4 py-2 fw-semibold text-nowrap shadow-sm d-flex align-items-center gap-2"
+            >
+              <span>📖 Open Subject Register</span>
+              <span>&rarr;</span>
+            </a>
+          </div>
+        </div>
+
         {/* Live Clock & Timetable Routine Component */}
         <div className="mb-4">
           <ClockWidget 

@@ -1,106 +1,89 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 export default function FacultyLayout({ children }: { children: React.ReactNode }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  const navLinks = [
+    { href: '/faculty/dashboard', label: '📊 Live Lecture & Roster', exact: true },
+    { href: '/faculty/dashboard/reports', label: '📋 Attendance Register & NC/DC' },
+  ];
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen w-full bg-[#070b14] bg-grid-mesh text-slate-100 overflow-x-hidden">
-      
-      {/* Mobile Top Header */}
-      <header className="flex md:hidden items-center justify-between px-4 py-3 border-b border-white/10 glass-panel sticky top-0 z-30 backdrop-blur-xl">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow-md shadow-purple-500/20">
-            A
+    <div className="d-flex flex-column flex-md-row min-vh-100 bg-light text-dark">
+      {/* Sidebar on desktop */}
+      <aside 
+        className="bg-white border-end shadow-sm d-flex flex-column justify-content-between p-3"
+        style={{ minWidth: 260, maxWidth: 280 }}
+      >
+        <div>
+          {/* Brand Header */}
+          <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+            <div className="d-flex align-items-center gap-2">
+              <div 
+                className="rounded-3 bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                style={{ width: 36, height: 36, fontSize: 18 }}
+              >
+                F
+              </div>
+              <div>
+                <h6 className="fw-bold mb-0 text-dark">Faculty Portal</h6>
+                <span className="small text-muted" style={{ fontSize: 11 }}>AEC MCA Department</span>
+              </div>
+            </div>
+            <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+              ● Online
+            </span>
           </div>
-          <div>
-            <h1 className="text-sm font-bold text-white leading-tight">Faculty Portal</h1>
-            <p className="text-[10px] text-slate-400">Assam Engineering College</p>
-          </div>
+
+          {/* Navigation Links */}
+          <nav className="nav flex-column gap-1">
+            {navLinks.map((link) => {
+              const isActive = link.exact 
+                ? pathname === link.href 
+                : pathname.startsWith(link.href);
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`nav-link px-3 py-2.5 rounded-3 fw-semibold small transition-all ${
+                    isActive
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-secondary hover-bg-light'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link
-            href="/"
-            onClick={() => localStorage.removeItem('token')}
-            className="text-xs px-2.5 py-1 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 font-medium"
+        {/* Sidebar Footer */}
+        <div className="pt-3 border-top mt-auto">
+          <button
+            onClick={handleLogout}
+            className="btn btn-outline-danger btn-sm w-100 rounded-pill py-2 fw-semibold"
           >
             Sign Out
-          </Link>
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 text-sm"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? '✕' : '☰'}
           </button>
         </div>
-      </header>
-
-      {/* Mobile Dropdown Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden glass-panel border-b border-white/10 px-4 py-3 space-y-2 z-30 sticky top-[53px]">
-          <Link
-            href="/faculty/dashboard"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-xl text-xs font-semibold bg-white/10 text-white"
-          >
-            📊 Live Roster & Lectures
-          </Link>
-          <div className="text-[11px] text-slate-400 px-3 py-1">
-            Department of Computer Applications • AEC
-          </div>
-        </div>
-      )}
-
-      {/* Desktop Sidebar (hidden on mobile, visible on md+) */}
-      <aside className="hidden md:flex w-64 min-h-screen glass-panel flex-col z-20 shrink-0 border-r border-white/10 justify-between">
-        <div>
-          <div className="p-6 border-b border-white/10 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-base font-bold text-white tracking-tight">Faculty Portal</h1>
-              <p className="text-[11px] text-slate-400">Assam Engg College</p>
-            </div>
-          </div>
-          
-          <div className="py-6 px-4 space-y-2">
-            <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">My Classes</p>
-            <Link 
-              href="/faculty/dashboard" 
-              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-white/10 text-white border border-white/10 shadow-sm"
-            >
-              <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <span>Active Lecture</span>
-            </Link>
-          </div>
-        </div>
-        
-        <div className="p-4 border-t border-white/10">
-          <Link 
-            href="/" 
-            onClick={() => localStorage.removeItem('token')}
-            className="flex items-center gap-2.5 p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-medium border border-rose-500/20 transition-colors justify-center"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span>Sign Out</span>
-          </Link>
-        </div>
       </aside>
-      
-      {/* Main Content Area (100% width on mobile) */}
-      <main className="flex-1 min-w-0 w-full overflow-y-auto">
-        {children}
+
+      {/* Main Faculty Content Area */}
+      <main className="flex-grow-1 p-3 p-md-4 p-lg-5 overflow-auto">
+        <div className="container-fluid" style={{ maxWidth: 1140 }}>
+          {children}
+        </div>
       </main>
     </div>
   );
