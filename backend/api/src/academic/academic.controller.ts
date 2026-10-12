@@ -105,6 +105,12 @@ export class AcademicController {
   }
 
   @Roles('ADMIN')
+  @Delete('classrooms/:id')
+  deleteClassroom(@Param('id') id: string) {
+    return this.academicService.deleteClassroom(id);
+  }
+
+  @Roles('ADMIN')
   @Put('subjects/:id')
   updateSubject(@Param('id') id: string, @Body() body: any) {
     return this.academicService.updateSubject(id, body);

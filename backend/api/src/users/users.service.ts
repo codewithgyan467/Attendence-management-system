@@ -87,11 +87,74 @@ export class UsersService {
   }
 
   async deleteUser(id: string) {
-    // Delete associated profiles first
-    await this.prisma.studentProfile.deleteMany({ where: { userId: id } });
-    await this.prisma.facultyProfile.deleteMany({ where: { userId: id } });
-    await this.prisma.adminProfile.deleteMany({ where: { userId: id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        studentProfile: true,
+        facultyProfile: true,
+        adminProfile: true
+      }
+    });
 
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 1. Clean up Student Profile dependencies
+    if (user.studentProfile) {
+      const sId = user.studentProfile.id;
+      // Delete face profile
+      await this.prisma.faceProfile.deleteMany({ where: { studentProfileId: sId } });
+      // Delete attendance records
+      await this.prisma.attendanceRecord.deleteMany({ where: { studentProfileId: sId } });
+      // Delete enrollments
+      await this.prisma.enrollment.deleteMany({ where: { studentProfileId: sId } });
+      // Delete feedback tickets and their messages
+      const tickets = await this.prisma.feedbackTicket.findMany({ where: { studentProfileId: sId } });
+      for (const t of tickets) {
+        await this.prisma.ticketMessage.deleteMany({ where: { ticketId: t.id } });
+      }
+      await this.prisma.feedbackTicket.deleteMany({ where: { studentProfileId: sId } });
+      // Delete student profile
+      await this.prisma.studentProfile.delete({ where: { id: sId } });
+    }
+
+    // 2. Clean up Faculty Profile dependencies
+    if (user.facultyProfile) {
+      const fId = user.facultyProfile.id;
+      // Unlink or delete class assignments
+      await this.prisma.classAssignment.deleteMany({ where: { facultyProfileId: fId } });
+      // Unlink faculty from timetable entries
+      await this.prisma.timetableEntry.updateMany({
+        where: { facultyProfileId: fId },
+        data: { facultyProfileId: null, facultyInitials: null }
+      });
+      // Handle sessions created by this faculty
+      const sessions = await this.prisma.classSession.findMany({ where: { facultyProfileId: fId } });
+      for (const ses of sessions) {
+        await this.prisma.attendanceRecord.deleteMany({ where: { classSessionId: ses.id } });
+        const tickets = await this.prisma.feedbackTicket.findMany({ where: { classSessionId: ses.id } });
+        for (const t of tickets) {
+          await this.prisma.ticketMessage.deleteMany({ where: { ticketId: t.id } });
+        }
+        await this.prisma.feedbackTicket.deleteMany({ where: { classSessionId: ses.id } });
+      }
+      await this.prisma.classSession.deleteMany({ where: { facultyProfileId: fId } });
+      // Delete faculty profile
+      await this.prisma.facultyProfile.delete({ where: { id: fId } });
+    }
+
+    // 3. Clean up Admin Profile
+    if (user.adminProfile) {
+      await this.prisma.adminProfile.delete({ where: { id: user.adminProfile.id } });
+    }
+
+    // 4. Clean up ticket messages sent by this user
+    await this.prisma.ticketMessage.deleteMany({ where: { userId: id } });
+    // 5. Clean up audit logs linked to this user
+    await this.prisma.auditLog.deleteMany({ where: { userId: id } });
+
+    // 6. Delete user record
     return this.prisma.user.delete({
       where: { id }
     });

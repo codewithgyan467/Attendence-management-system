@@ -114,6 +114,12 @@ export class AttendanceController {
   }
 
   @Roles('ADMIN')
+  @Delete('admin/records/:id')
+  async deleteAttendanceRecord(@Param('id') recordId: string) {
+    return this.attendanceService.deleteAttendanceRecord(recordId);
+  }
+
+  @Roles('ADMIN')
   @Get('admin/holidays')
   async getHolidays() {
     return this.attendanceService.getHolidays();

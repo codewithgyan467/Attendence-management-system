@@ -866,6 +866,10 @@ export class AttendanceService {
     return this.prisma.holiday.delete({ where: { id } });
   }
 
+  async deleteAttendanceRecord(recordId: string) {
+    return this.prisma.attendanceRecord.delete({ where: { id: recordId } });
+  }
+
   // --- ESP32 Hardware & Offline Synchronization ---
   async generateBeaconChallenge(deviceId: string) {
     const device = await this.prisma.eSP32Device.findUnique({

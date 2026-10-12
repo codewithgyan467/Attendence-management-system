@@ -305,8 +305,13 @@ export default function InstitutionsManagement() {
                           onClick={async () => {
                             if (confirm(`Delete university ${uni.name}?`)) {
                               const token = localStorage.getItem('token');
-                              await fetch(`${API_URL}/academic/institutions/${uni.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-                              setInstitutions(institutions.filter((u: any) => u.id !== uni.id));
+                              const res = await fetch(`${API_URL}/academic/institutions/${uni.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                              if (res.ok) {
+                                setInstitutions(institutions.filter((u: any) => u.id !== uni.id));
+                              } else {
+                                const err = await res.json().catch(() => ({}));
+                                alert(err.message || 'Failed to delete university from database');
+                              }
                             }
                           }}
                           className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 text-xs font-semibold border border-rose-500/30 hover:bg-rose-500/30 transition-colors"
@@ -493,10 +498,15 @@ export default function InstitutionsManagement() {
                           </button>
                           <button 
                             onClick={async () => {
-                              if (confirm(`Delete department ${dept.name}?`)) {
+                              if (confirm(`Delete department ${dept.name}? This will also safely delete related subjects, classrooms, and section mappings.`)) {
                                 const token = localStorage.getItem('token');
-                                await fetch(`${API_URL}/academic/departments/${dept.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-                                setDepartments(departments.filter((d: any) => d.id !== dept.id));
+                                const res = await fetch(`${API_URL}/academic/departments/${dept.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                                if (res.ok) {
+                                  setDepartments(departments.filter((d: any) => d.id !== dept.id));
+                                } else {
+                                  const err = await res.json().catch(() => ({}));
+                                  alert(err.message || 'Failed to delete department from database');
+                                }
                               }
                             }}
                             className="text-xs font-medium px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors"

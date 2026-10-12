@@ -138,6 +138,48 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteAttendanceRecord = async (recordId: string) => {
+    if (!token) return;
+    if (!confirm('Are you sure you want to permanently delete this attendance record from the database?')) return;
+    try {
+      const res = await fetch(`${API_URL}/attendance/admin/records/${recordId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setActionMessage('Attendance record deleted successfully from database');
+        setTimeout(() => setActionMessage(''), 3000);
+        fetchData(token, simDay, simTime);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Failed to delete attendance record');
+      }
+    } catch (e) {
+      console.error('Delete record error:', e);
+    }
+  };
+
+  const handleDeleteClassroom = async (id: string, name: string) => {
+    if (!token) return;
+    if (!confirm(`Are you sure you want to delete classroom "${name}"? This action will safely clean up associated routine slots and hardware bindings.`)) return;
+    try {
+      const res = await fetch(`${API_URL}/academic/classrooms/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setActionMessage(`Classroom "${name}" deleted successfully`);
+        setTimeout(() => setActionMessage(''), 3000);
+        fetchData(token, simDay, simTime);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Failed to delete classroom from database');
+      }
+    } catch (e) {
+      console.error('Delete classroom error:', e);
+    }
+  };
+
   const handleStartEditClassroom = (c?: any) => {
     if (c) {
       setEditingClassroomId(c.id);
@@ -405,6 +447,13 @@ export default function AdminDashboard() {
                         className="px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 transition-colors"
                       >
                         Excused
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAttendanceRecord(r.id)}
+                        className="px-2.5 py-1 rounded-lg text-xs font-medium bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors"
+                        title="Delete record from database"
+                      >
+                        ✕ Delete
                       </button>
                     </td>
                   </tr>
@@ -706,6 +755,12 @@ export default function AdminDashboard() {
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 transition-colors"
                         >
                           Edit Coordinates
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClassroom(c.id, c.name)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-colors ml-2"
+                        >
+                          Delete
                         </button>
                       </td>
                     </tr>

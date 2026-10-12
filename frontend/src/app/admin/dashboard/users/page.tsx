@@ -197,10 +197,13 @@ export default function UsersManagement() {
       });
       if (res.ok) {
         setUsers(users.filter((u) => u.id !== user.id));
-        setFeedback({ type: 'success', text: `Deleted user ${user.firstName} ${user.lastName}` });
+        setFeedback({ type: 'success', text: `Deleted user ${user.firstName} ${user.lastName} successfully!` });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setFeedback({ type: 'error', text: err.message || 'Failed to delete user profile from database' });
       }
-    } catch {
-      setFeedback({ type: 'error', text: 'Failed to delete user profile' });
+    } catch (e: any) {
+      setFeedback({ type: 'error', text: e.message || 'Failed to delete user profile' });
     }
   };
 

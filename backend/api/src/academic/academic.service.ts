@@ -56,6 +56,11 @@ export class AcademicService {
   }
 
   async deleteInstitution(id: string) {
+    // Unlink departments from this institution
+    await this.prisma.department.updateMany({
+      where: { institutionId: id },
+      data: { institutionId: null }
+    });
     return (this.prisma as any).institution.delete({ where: { id } });
   }
 
@@ -94,6 +99,28 @@ export class AcademicService {
   }
 
   async deleteDepartment(id: string) {
+    // 1. Unlink student and faculty profiles from this department
+    await this.prisma.studentProfile.updateMany({
+      where: { departmentId: id },
+      data: { departmentId: null }
+    });
+    await this.prisma.facultyProfile.updateMany({
+      where: { departmentId: id },
+      data: { departmentId: null }
+    });
+
+    // 2. Delete or cascade subjects under this department
+    const subjects = await this.prisma.subject.findMany({ where: { departmentId: id } });
+    for (const sub of subjects) {
+      await this.deleteSubject(sub.id);
+    }
+
+    // 3. Delete or cascade classrooms under this department
+    const classrooms = await this.prisma.classroom.findMany({ where: { departmentId: id } });
+    for (const c of classrooms) {
+      await this.deleteClassroom(c.id);
+    }
+
     return this.prisma.department.delete({ where: { id } });
   }
 
@@ -258,23 +285,87 @@ export class AcademicService {
   }
 
   // --- Deletions ---
+  async deleteClassroom(id: string) {
+    // 1. Delete associated ESP32 device
+    await this.prisma.eSP32Device.deleteMany({ where: { classroomId: id } });
+
+    // 2. Unlink sessions pointing to timetable entries in this classroom
+    const ttEntries = await this.prisma.timetableEntry.findMany({ where: { classroomId: id } });
+    for (const tt of ttEntries) {
+      await this.prisma.classSession.updateMany({
+        where: { timetableEntryId: tt.id },
+        data: { timetableEntryId: null }
+      });
+    }
+    // Delete timetable entries in this classroom
+    await this.prisma.timetableEntry.deleteMany({ where: { classroomId: id } });
+
+    // 3. Unlink class sessions or reassign to another room
+    const otherRoom = await this.prisma.classroom.findFirst({ where: { id: { not: id } } });
+    if (otherRoom) {
+      await this.prisma.classSession.updateMany({
+        where: { classroomId: id },
+        data: { classroomId: otherRoom.id }
+      });
+    } else {
+      const sessions = await this.prisma.classSession.findMany({ where: { classroomId: id } });
+      for (const s of sessions) {
+        await this.prisma.attendanceRecord.deleteMany({ where: { classSessionId: s.id } });
+      }
+      await this.prisma.classSession.deleteMany({ where: { classroomId: id } });
+    }
+
+    return this.prisma.classroom.delete({ where: { id } });
+  }
+
   async deleteSubject(id: string) {
-    // Delete related sections first
+    // Delete related sections first with their timetable entries, assignments, and enrollments
     const sections = await this.prisma.section.findMany({ where: { subjectId: id } });
     for (const sec of sections) {
+      // Unlink sessions pointing to timetable entries
+      const ttEntries = await this.prisma.timetableEntry.findMany({ where: { sectionId: sec.id } });
+      for (const tt of ttEntries) {
+        await this.prisma.classSession.updateMany({
+          where: { timetableEntryId: tt.id },
+          data: { timetableEntryId: null }
+        });
+      }
       await this.prisma.timetableEntry.deleteMany({ where: { sectionId: sec.id } });
       await this.prisma.classAssignment.deleteMany({ where: { sectionId: sec.id } });
+      await this.prisma.enrollment.deleteMany({ where: { sectionId: sec.id } });
     }
     await this.prisma.section.deleteMany({ where: { subjectId: id } });
     return this.prisma.subject.delete({ where: { id } });
   }
 
   async deleteTerm(id: string) {
+    // Unlink enrollments and class sessions
+    await this.prisma.enrollment.updateMany({
+      where: { academicTermId: id },
+      data: { academicTermId: null }
+    });
+    await this.prisma.classSession.updateMany({
+      where: { academicTermId: id },
+      data: { academicTermId: null }
+    });
+
+    const ttEntries = await this.prisma.timetableEntry.findMany({ where: { academicTermId: id } });
+    for (const tt of ttEntries) {
+      await this.prisma.classSession.updateMany({
+        where: { timetableEntryId: tt.id },
+        data: { timetableEntryId: null }
+      });
+    }
     await this.prisma.timetableEntry.deleteMany({ where: { academicTermId: id } });
     return this.prisma.academicTerm.delete({ where: { id } });
   }
 
   async deleteTimetableRecord(id: string) {
+    // Unlink any class sessions pointing to this timetable entry
+    await this.prisma.classSession.updateMany({
+      where: { timetableEntryId: id },
+      data: { timetableEntryId: null }
+    });
     return this.prisma.timetableEntry.delete({ where: { id } });
   }
 
