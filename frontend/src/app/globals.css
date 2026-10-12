@@ -207,3 +207,17 @@ html, body {
     padding: 1rem !important;
   }
 }
+
+/* Unrestricted copy, selection, and paste enforcement across all form inputs and credentials */
+input, textarea, select, [contenteditable="true"] {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+}
+
+.copyable, .font-monospace, code, pre, .user-select-all {
+  user-select: all !important;
+  -webkit-user-select: all !important;
+}
+

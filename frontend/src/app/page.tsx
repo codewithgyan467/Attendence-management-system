@@ -40,6 +40,44 @@ export default function LoginPage() {
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
 
+  // Password visibility & clipboard feedback states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+  const handleCopyToClipboard = (text: string, label: string) => {
+    if (!text) return;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopyFeedback(`Copied ${label} to clipboard!`);
+      setTimeout(() => setCopyFeedback(null), 2500);
+    } catch {
+      setCopyFeedback(`Selected ${label}. Press Ctrl+C to copy.`);
+      setTimeout(() => setCopyFeedback(null), 2500);
+    }
+  };
+
+  const handlePasteFromClipboard = async (setter: (val: string) => void) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) setter(text);
+      }
+    } catch {
+      // Browser permission prompt or unsupported; standard paste via Ctrl+V remains operational
+    }
+  };
+
   // General notification/error states
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -502,6 +540,19 @@ export default function LoginPage() {
           </div>
 
           {/* Status & Error Alerts */}
+          {copyFeedback && (
+            <div className="alert alert-success border-success-subtle py-2 px-3 small rounded-3 d-flex align-items-center justify-content-between mb-3 shadow-sm animate-fadeIn">
+              <span className="fw-semibold">📋 {copyFeedback}</span>
+              <button
+                type="button"
+                onClick={() => setCopyFeedback(null)}
+                className="btn btn-sm btn-link text-success p-0 text-decoration-none fw-bold"
+                style={{ fontSize: 13 }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
           {error && (
             <div className="alert alert-danger border-danger-subtle py-2.5 px-3 small rounded-3 d-flex align-items-center gap-2 mb-3">
               <span>⚠️</span>
@@ -545,18 +596,53 @@ export default function LoginPage() {
 
               <form onSubmit={handleLogin} className="space-y-3">
                 <div className="mb-3">
-                  <label className="form-label small fw-semibold text-secondary mb-1">
-                    Institute Email
-                  </label>
-                  <input
-                    type="email"
-                    className="form-control form-control-lg rounded-3 fs-6"
-                    placeholder="user@aec.ac.in"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="email"
-                  />
+                  <div className="d-flex align-items-center justify-content-between mb-1">
+                    <label className="form-label small fw-semibold text-secondary mb-0">
+                      Institute Email / ID
+                    </label>
+                    <div className="d-flex align-items-center gap-2">
+                      {email && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyToClipboard(email, 'Email')}
+                          className="btn btn-link p-0 text-decoration-none text-primary small fw-semibold"
+                          style={{ fontSize: 11 }}
+                          title="Copy email to clipboard"
+                        >
+                          📋 Copy Email
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handlePasteFromClipboard(setEmail)}
+                        className="btn btn-link p-0 text-decoration-none text-secondary small"
+                        style={{ fontSize: 11 }}
+                        title="Paste into email field"
+                      >
+                        📥 Paste
+                      </button>
+                    </div>
+                  </div>
+                  <div className="input-group">
+                    <input
+                      type="email"
+                      className="form-control form-control-lg rounded-start-3 fs-6"
+                      placeholder="user@aec.ac.in"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                      style={{ userSelect: 'text' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCopyToClipboard(email, 'Email')}
+                      className="btn btn-outline-secondary px-3"
+                      title="Copy email ID"
+                    >
+                      📋
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mb-4">
@@ -564,24 +650,70 @@ export default function LoginPage() {
                     <label className="form-label small fw-semibold text-secondary mb-0">
                       Password
                     </label>
+                    <div className="d-flex align-items-center gap-2">
+                      {password && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyToClipboard(password, 'Password')}
+                          className="btn btn-link p-0 text-decoration-none text-primary small fw-semibold"
+                          style={{ fontSize: 11 }}
+                          title="Copy password to clipboard"
+                        >
+                          📋 Copy Pass
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handlePasteFromClipboard(setPassword)}
+                        className="btn btn-link p-0 text-decoration-none text-secondary small"
+                        style={{ fontSize: 11 }}
+                        title="Paste into password field"
+                      >
+                        📥 Paste
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('forgot')}
+                        className="btn btn-link p-0 text-decoration-none small"
+                        style={{ fontSize: 12 }}
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                  </div>
+                  <div className="input-group">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="form-control form-control-lg rounded-start-3 fs-6"
+                      placeholder="••••••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                      style={{ userSelect: 'text' }}
+                    />
                     <button
                       type="button"
-                      onClick={() => setViewMode('forgot')}
-                      className="btn btn-link p-0 text-decoration-none small"
-                      style={{ fontSize: 12 }}
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="btn btn-outline-secondary px-3"
+                      title={showPassword ? 'Hide password' : 'Show password to easily copy/cut/paste'}
                     >
-                      Forgot Password?
+                      {showPassword ? '🙈' : '👁️'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyToClipboard(password, 'Password')}
+                      className="btn btn-outline-secondary px-3"
+                      title="Copy password to clipboard"
+                    >
+                      📋
                     </button>
                   </div>
-                  <input
-                    type="password"
-                    className="form-control form-control-lg rounded-3 fs-6"
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                  />
+                  {showPassword && (
+                    <small className="text-muted d-block mt-1" style={{ fontSize: 11 }}>
+                      ✓ Password unmasked. You can highlight, copy, cut, or paste freely.
+                    </small>
+                  )}
                 </div>
 
                 <button
@@ -597,36 +729,138 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              {/* 1-Click Demo Fillers */}
-              <div className="mt-4 pt-3 border-top text-center">
-                <p className="text-muted small mb-2">Quick 1-Click Test Accounts:</p>
-                <div className="row g-2">
-                  <div className="col-4">
-                    <button
-                      type="button"
-                      onClick={() => fillDemo('STUDENT', 'student.mca@aec.ac.in', 'Student@123')}
-                      className="btn btn-outline-secondary btn-sm w-100 py-1.5 small text-nowrap"
-                    >
-                      Student
-                    </button>
+              {/* 1-Click Demo Accounts with Copyable IDs & Passwords */}
+              <div className="mt-4 pt-3 border-top">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <p className="text-muted small mb-0 fw-semibold">Quick Test Accounts & Copyable Credentials:</p>
+                  <small className="text-muted" style={{ fontSize: 11 }}>Click ID or Pass to Copy</small>
+                </div>
+
+                <div className="d-flex flex-column gap-2">
+                  {/* Student */}
+                  <div className="p-2.5 rounded-3 bg-light border d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2" style={{ borderColor: '#e3e6ed' }}>
+                    <div>
+                      <div className="d-flex align-items-center gap-1.5 mb-1">
+                        <span className="badge bg-primary text-white py-1 px-2 rounded-pill fw-bold" style={{ fontSize: 10 }}>STUDENT</span>
+                        <code className="text-dark fw-bold user-select-all" style={{ fontSize: 12 }}>student.mca@aec.ac.in</code>
+                      </div>
+                      <div className="d-flex align-items-center gap-1.5 text-muted small">
+                        <span>Pass:</span>
+                        <code className="text-secondary user-select-all" style={{ fontSize: 11 }}>Student@123</code>
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-center gap-1.5 align-self-end align-self-sm-center">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyToClipboard('student.mca@aec.ac.in', 'Student Email')}
+                        className="btn btn-outline-secondary btn-sm py-1 px-2 text-nowrap rounded-2"
+                        style={{ fontSize: 11 }}
+                        title="Copy Student Email ID"
+                      >
+                        📋 Copy ID
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyToClipboard('Student@123', 'Student Password')}
+                        className="btn btn-outline-secondary btn-sm py-1 px-2 text-nowrap rounded-2"
+                        style={{ fontSize: 11 }}
+                        title="Copy Student Password"
+                      >
+                        📋 Copy Pass
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fillDemo('STUDENT', 'student.mca@aec.ac.in', 'Student@123')}
+                        className="btn btn-primary btn-sm py-1 px-2.5 text-nowrap rounded-2 fw-semibold"
+                        style={{ fontSize: 11 }}
+                      >
+                        ⚡ Autofill
+                      </button>
+                    </div>
                   </div>
-                  <div className="col-4">
-                    <button
-                      type="button"
-                      onClick={() => fillDemo('FACULTY', 'sbordoloi.mca@aec.ac.in', 'Faculty@123')}
-                      className="btn btn-outline-secondary btn-sm w-100 py-1.5 small text-nowrap"
-                    >
-                      Faculty
-                    </button>
+
+                  {/* Faculty */}
+                  <div className="p-2.5 rounded-3 bg-light border d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2" style={{ borderColor: '#e3e6ed' }}>
+                    <div>
+                      <div className="d-flex align-items-center gap-1.5 mb-1">
+                        <span className="badge bg-success text-white py-1 px-2 rounded-pill fw-bold" style={{ fontSize: 10 }}>FACULTY</span>
+                        <code className="text-dark fw-bold user-select-all" style={{ fontSize: 12 }}>sbordoloi.mca@aec.ac.in</code>
+                      </div>
+                      <div className="d-flex align-items-center gap-1.5 text-muted small">
+                        <span>Pass:</span>
+                        <code className="text-secondary user-select-all" style={{ fontSize: 11 }}>Faculty@123</code>
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-center gap-1.5 align-self-end align-self-sm-center">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyToClipboard('sbordoloi.mca@aec.ac.in', 'Faculty Email')}
+                        className="btn btn-outline-secondary btn-sm py-1 px-2 text-nowrap rounded-2"
+                        style={{ fontSize: 11 }}
+                        title="Copy Faculty Email ID"
+                      >
+                        📋 Copy ID
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyToClipboard('Faculty@123', 'Faculty Password')}
+                        className="btn btn-outline-secondary btn-sm py-1 px-2 text-nowrap rounded-2"
+                        style={{ fontSize: 11 }}
+                        title="Copy Faculty Password"
+                      >
+                        📋 Copy Pass
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fillDemo('FACULTY', 'sbordoloi.mca@aec.ac.in', 'Faculty@123')}
+                        className="btn btn-success btn-sm py-1 px-2.5 text-nowrap rounded-2 fw-semibold"
+                        style={{ fontSize: 11 }}
+                      >
+                        ⚡ Autofill
+                      </button>
+                    </div>
                   </div>
-                  <div className="col-4">
-                    <button
-                      type="button"
-                      onClick={() => fillDemo('ADMIN', 'admin@aec.ac.in', 'Admin@123')}
-                      className="btn btn-outline-secondary btn-sm w-100 py-1.5 small text-nowrap"
-                    >
-                      Admin
-                    </button>
+
+                  {/* Admin */}
+                  <div className="p-2.5 rounded-3 bg-light border d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2" style={{ borderColor: '#e3e6ed' }}>
+                    <div>
+                      <div className="d-flex align-items-center gap-1.5 mb-1">
+                        <span className="badge bg-dark text-white py-1 px-2 rounded-pill fw-bold" style={{ fontSize: 10 }}>ADMIN</span>
+                        <code className="text-dark fw-bold user-select-all" style={{ fontSize: 12 }}>admin@aec.ac.in</code>
+                      </div>
+                      <div className="d-flex align-items-center gap-1.5 text-muted small">
+                        <span>Pass:</span>
+                        <code className="text-secondary user-select-all" style={{ fontSize: 11 }}>Admin@123</code>
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-center gap-1.5 align-self-end align-self-sm-center">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyToClipboard('admin@aec.ac.in', 'Admin Email')}
+                        className="btn btn-outline-secondary btn-sm py-1 px-2 text-nowrap rounded-2"
+                        style={{ fontSize: 11 }}
+                        title="Copy Admin Email ID"
+                      >
+                        📋 Copy ID
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyToClipboard('Admin@123', 'Admin Password')}
+                        className="btn btn-outline-secondary btn-sm py-1 px-2 text-nowrap rounded-2"
+                        style={{ fontSize: 11 }}
+                        title="Copy Admin Password"
+                      >
+                        📋 Copy Pass
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fillDemo('ADMIN', 'admin@aec.ac.in', 'Admin@123')}
+                        className="btn btn-dark btn-sm py-1 px-2.5 text-nowrap rounded-2 fw-semibold"
+                        style={{ fontSize: 11 }}
+                      >
+                        ⚡ Autofill
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -724,25 +958,47 @@ export default function LoginPage() {
 
                 <div className="row g-2 mb-3">
                   <div className="col-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">Password</label>
+                    <div className="d-flex align-items-center justify-content-between mb-1">
+                      <label className="form-label small fw-semibold text-secondary mb-0">Password</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowRegPassword(!showRegPassword)}
+                        className="btn btn-link p-0 text-decoration-none small text-muted"
+                        style={{ fontSize: 11 }}
+                      >
+                        {showRegPassword ? 'Hide 🙈' : 'Show 👁️'}
+                      </button>
+                    </div>
                     <input
-                      type="password"
+                      type={showRegPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       className="form-control form-control-sm rounded-2"
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
+                      style={{ userSelect: 'text' }}
                     />
                   </div>
                   <div className="col-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">Confirm Password</label>
+                    <div className="d-flex align-items-center justify-content-between mb-1">
+                      <label className="form-label small fw-semibold text-secondary mb-0">Confirm Password</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowRegPassword(!showRegPassword)}
+                        className="btn btn-link p-0 text-decoration-none small text-muted"
+                        style={{ fontSize: 11 }}
+                      >
+                        {showRegPassword ? 'Hide 🙈' : 'Show 👁️'}
+                      </button>
+                    </div>
                     <input
-                      type="password"
+                      type={showRegPassword ? 'text' : 'password'}
                       required
                       placeholder="••••••••"
                       className="form-control form-control-sm rounded-2"
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      style={{ userSelect: 'text' }}
                     />
                   </div>
                 </div>
@@ -970,26 +1226,48 @@ export default function LoginPage() {
                       </div>
 
                       <div className="mb-2">
-                        <label className="form-label small fw-semibold text-secondary mb-1">New Password</label>
+                        <div className="d-flex align-items-center justify-content-between mb-1">
+                          <label className="form-label small fw-semibold text-secondary mb-0">New Password</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                            className="btn btn-link p-0 text-decoration-none small text-muted"
+                            style={{ fontSize: 11 }}
+                          >
+                            {showForgotNewPassword ? 'Hide 🙈' : 'Show 👁️'}
+                          </button>
+                        </div>
                         <input
-                          type="password"
+                          type={showForgotNewPassword ? 'text' : 'password'}
                           required
                           placeholder="••••••••••••"
                           className="form-control rounded-3"
                           value={forgotNewPassword}
                           onChange={(e) => setForgotNewPassword(e.target.value)}
+                          style={{ userSelect: 'text' }}
                         />
                       </div>
 
                       <div className="mb-3">
-                        <label className="form-label small fw-semibold text-secondary mb-1">Confirm New Password</label>
+                        <div className="d-flex align-items-center justify-content-between mb-1">
+                          <label className="form-label small fw-semibold text-secondary mb-0">Confirm New Password</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                            className="btn btn-link p-0 text-decoration-none small text-muted"
+                            style={{ fontSize: 11 }}
+                          >
+                            {showForgotNewPassword ? 'Hide 🙈' : 'Show 👁️'}
+                          </button>
+                        </div>
                         <input
-                          type="password"
+                          type={showForgotNewPassword ? 'text' : 'password'}
                           required
                           placeholder="••••••••••••"
                           className="form-control rounded-3"
                           value={forgotConfirmPassword}
                           onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                          style={{ userSelect: 'text' }}
                         />
                       </div>
 
@@ -1027,26 +1305,48 @@ export default function LoginPage() {
                       </div>
 
                       <div className="mb-2">
-                        <label className="form-label small fw-semibold text-secondary mb-1">New Password</label>
+                        <div className="d-flex align-items-center justify-content-between mb-1">
+                          <label className="form-label small fw-semibold text-secondary mb-0">New Password</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                            className="btn btn-link p-0 text-decoration-none small text-muted"
+                            style={{ fontSize: 11 }}
+                          >
+                            {showForgotNewPassword ? 'Hide 🙈' : 'Show 👁️'}
+                          </button>
+                        </div>
                         <input
-                          type="password"
+                          type={showForgotNewPassword ? 'text' : 'password'}
                           required
                           placeholder="••••••••••••"
                           className="form-control rounded-3"
                           value={forgotNewPassword}
                           onChange={(e) => setForgotNewPassword(e.target.value)}
+                          style={{ userSelect: 'text' }}
                         />
                       </div>
 
                       <div className="mb-3">
-                        <label className="form-label small fw-semibold text-secondary mb-1">Confirm Password</label>
+                        <div className="d-flex align-items-center justify-content-between mb-1">
+                          <label className="form-label small fw-semibold text-secondary mb-0">Confirm Password</label>
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                            className="btn btn-link p-0 text-decoration-none small text-muted"
+                            style={{ fontSize: 11 }}
+                          >
+                            {showForgotNewPassword ? 'Hide 🙈' : 'Show 👁️'}
+                          </button>
+                        </div>
                         <input
-                          type="password"
+                          type={showForgotNewPassword ? 'text' : 'password'}
                           required
                           placeholder="••••••••••••"
                           className="form-control rounded-3"
                           value={forgotConfirmPassword}
                           onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                          style={{ userSelect: 'text' }}
                         />
                       </div>
 
