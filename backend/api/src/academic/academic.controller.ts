@@ -175,4 +175,26 @@ export class AcademicController {
   assignFaculty(@Body() body: { facultyProfileId: string; sectionId: string }) {
     return this.academicService.assignFacultyToSection(body.facultyProfileId, body.sectionId);
   }
+
+  @Get('faculty')
+  getAllFaculty() {
+    return this.academicService.getAllFaculty();
+  }
+
+  @Get('course-assignments')
+  getCourseAssignments() {
+    return this.academicService.getCourseAssignments();
+  }
+
+  @Roles('ADMIN')
+  @Post('reassign-course')
+  reassignCourse(@Body() body: { sectionId: string; facultyProfileId: string }) {
+    return this.academicService.reassignCourseFaculty(body.sectionId, body.facultyProfileId);
+  }
+
+  @Roles('ADMIN')
+  @Post('transfer-faculty-courses')
+  transferFacultyCourses(@Body() body: { fromFacultyProfileId: string; toFacultyProfileId: string }) {
+    return this.academicService.transferAllCourses(body.fromFacultyProfileId, body.toFacultyProfileId);
+  }
 }

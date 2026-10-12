@@ -308,18 +308,45 @@ export class AcademicService {
   }
 
   async createTimetableRecord(data: any) {
-    // Assuming simple mapping for now
-    return this.prisma.timetableEntry.create({
+    let facultyInitials = data.facultyInitials || null;
+    let facultyProfileId = data.facultyProfileId || null;
+
+    if (facultyProfileId && !facultyInitials) {
+      const fac = await this.prisma.facultyProfile.findUnique({
+        where: { id: facultyProfileId },
+        include: { user: true }
+      });
+      if (fac) {
+        facultyInitials = `${fac.user.firstName?.[0] || ''}${fac.user.lastName?.[0] || ''}`.toUpperCase();
+      }
+    }
+
+    const entry = await this.prisma.timetableEntry.create({
       data: {
         academicTermId: data.academicTermId,
         sectionId: data.sectionId,
         classroomId: data.classroomId,
-        dayOfWeek: parseInt(data.dayOfWeek),
+        dayOfWeek: parseInt(data.dayOfWeek, 10),
         startTime: data.startTime,
         endTime: data.endTime,
-        subjectType: data.subjectType
+        subjectType: data.subjectType || 'Theory',
+        facultyProfileId,
+        facultyInitials
       }
     });
+
+    if (facultyProfileId && data.sectionId) {
+      const existing = await this.prisma.classAssignment.findFirst({
+        where: { sectionId: data.sectionId, facultyProfileId }
+      });
+      if (!existing) {
+        await this.prisma.classAssignment.create({
+          data: { sectionId: data.sectionId, facultyProfileId }
+        }).catch(() => {});
+      }
+    }
+
+    return entry;
   }
 
   // --- Updates ---
@@ -351,7 +378,18 @@ export class AcademicService {
   }
 
   async updateTimetableRecord(id: string, data: any) {
-    return this.prisma.timetableEntry.update({
+    let facultyInitials = data.facultyInitials;
+    if (data.facultyProfileId && !facultyInitials) {
+      const fac = await this.prisma.facultyProfile.findUnique({
+        where: { id: data.facultyProfileId },
+        include: { user: true }
+      });
+      if (fac) {
+        facultyInitials = `${fac.user.firstName?.[0] || ''}${fac.user.lastName?.[0] || ''}`.toUpperCase();
+      }
+    }
+
+    const updated = await this.prisma.timetableEntry.update({
       where: { id },
       data: {
         ...(data.academicTermId && { academicTermId: data.academicTermId }),
@@ -361,9 +399,176 @@ export class AcademicService {
         ...(data.startTime && { startTime: data.startTime }),
         ...(data.endTime && { endTime: data.endTime }),
         ...(data.subjectType && { subjectType: data.subjectType }),
-        ...(data.facultyInitials !== undefined && { facultyInitials: data.facultyInitials })
+        ...(data.facultyProfileId !== undefined && { facultyProfileId: data.facultyProfileId || null }),
+        ...(facultyInitials !== undefined && { facultyInitials })
       }
     });
+
+    if (data.facultyProfileId && (data.sectionId || updated.sectionId)) {
+      const secId = data.sectionId || updated.sectionId;
+      const existing = await this.prisma.classAssignment.findFirst({
+        where: { sectionId: secId, facultyProfileId: data.facultyProfileId }
+      });
+      if (!existing) {
+        await this.prisma.classAssignment.create({
+          data: { sectionId: secId, facultyProfileId: data.facultyProfileId }
+        }).catch(() => {});
+      }
+    }
+
+    return updated;
+  }
+
+  // --- Faculty & Course Assignment Management ---
+  async getAllFaculty() {
+    return this.prisma.facultyProfile.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+          }
+        },
+        assignedClasses: {
+          include: {
+            section: {
+              include: {
+                subject: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: { employeeId: 'asc' }
+    });
+  }
+
+  async getCourseAssignments() {
+    return this.prisma.section.findMany({
+      include: {
+        subject: {
+          include: { department: true }
+        },
+        classAssignments: {
+          include: {
+            faculty: {
+              include: {
+                user: {
+                  select: { firstName: true, lastName: true, email: true }
+                }
+              }
+            }
+          }
+        },
+        timetableEntries: {
+          include: {
+            classroom: true,
+            academicTerm: true
+          }
+        }
+      },
+      orderBy: [
+        { subject: { semester: 'asc' } },
+        { subject: { code: 'asc' } }
+      ]
+    });
+  }
+
+  async reassignCourseFaculty(sectionId: string, facultyProfileId: string) {
+    const faculty = await this.prisma.facultyProfile.findUnique({
+      where: { id: facultyProfileId },
+      include: { user: true }
+    });
+    if (!faculty) {
+      throw new Error('Faculty profile not found');
+    }
+
+    const initials = `${faculty.user.firstName?.[0] || ''}${faculty.user.lastName?.[0] || ''}`.toUpperCase();
+
+    // Remove previous assignments for this section
+    await this.prisma.classAssignment.deleteMany({
+      where: { sectionId }
+    });
+
+    // Create new assignment
+    const assignment = await this.prisma.classAssignment.create({
+      data: {
+        sectionId,
+        facultyProfileId
+      }
+    });
+
+    // Update all associated timetable entries
+    await this.prisma.timetableEntry.updateMany({
+      where: { sectionId },
+      data: {
+        facultyProfileId,
+        facultyInitials: initials
+      }
+    });
+
+    return {
+      success: true,
+      message: `Course assigned to ${faculty.user.firstName} ${faculty.user.lastName} (${initials})`,
+      assignment
+    };
+  }
+
+  async transferAllCourses(fromFacultyProfileId: string, toFacultyProfileId: string) {
+    const [fromFaculty, toFaculty] = await Promise.all([
+      this.prisma.facultyProfile.findUnique({
+        where: { id: fromFacultyProfileId },
+        include: { user: true }
+      }),
+      this.prisma.facultyProfile.findUnique({
+        where: { id: toFacultyProfileId },
+        include: { user: true }
+      })
+    ]);
+
+    if (!fromFaculty || !toFaculty) {
+      throw new Error('One or both faculty profiles not found');
+    }
+
+    const toInitials = `${toFaculty.user.firstName?.[0] || ''}${toFaculty.user.lastName?.[0] || ''}`.toUpperCase();
+
+    const assignments = await this.prisma.classAssignment.findMany({
+      where: { facultyProfileId: fromFacultyProfileId }
+    });
+
+    const transferredSectionIds = assignments.map(a => a.sectionId);
+
+    for (const sectionId of transferredSectionIds) {
+      await this.prisma.classAssignment.deleteMany({ where: { sectionId } });
+      await this.prisma.classAssignment.create({
+        data: { sectionId, facultyProfileId: toFacultyProfileId }
+      });
+      await this.prisma.timetableEntry.updateMany({
+        where: { sectionId },
+        data: {
+          facultyProfileId: toFacultyProfileId,
+          facultyInitials: toInitials
+        }
+      });
+    }
+
+    // Also update any timetable entries directly referencing fromFacultyProfileId
+    await this.prisma.timetableEntry.updateMany({
+      where: { facultyProfileId: fromFacultyProfileId },
+      data: {
+        facultyProfileId: toFacultyProfileId,
+        facultyInitials: toInitials
+      }
+    });
+
+    return {
+      success: true,
+      transferredCount: transferredSectionIds.length,
+      message: `Successfully transferred ${transferredSectionIds.length} course(s) from ${fromFaculty.user.firstName} ${fromFaculty.user.lastName} to ${toFaculty.user.firstName} ${toFaculty.user.lastName} (${toInitials})`
+    };
   }
 
   // --- Universal Multi-Tenant Institution ---
