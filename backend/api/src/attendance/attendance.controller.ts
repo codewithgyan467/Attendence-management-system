@@ -16,14 +16,25 @@ export class AttendanceController {
   // --- Live Calendar, Clock & Timetable Session Endpoint ---
   @Get('live-schedule')
   async getLiveSchedule(
+    @Request() req: any,
     @Query('simulateDay') simulateDay?: string,
     @Query('simulateTime') simulateTime?: string,
     @Query('semester') semester?: string
   ) {
+    let targetSemester = semester ? Number(semester) : undefined;
+    if (!targetSemester && req.user?.userId) {
+      const student = await this.prisma.studentProfile.findUnique({
+        where: { userId: req.user.userId }
+      });
+      if (student) {
+        targetSemester = student.semester;
+      }
+    }
+
     return this.attendanceService.getLiveScheduleSession({
       simulateDay: simulateDay !== undefined ? Number(simulateDay) : undefined,
       simulateTime,
-      semester: semester ? Number(semester) : undefined
+      semester: targetSemester
     });
   }
 

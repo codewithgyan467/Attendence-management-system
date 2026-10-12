@@ -197,6 +197,10 @@ export class UsersService {
         });
       }
 
+      if (!isGraduation) {
+        await this.enrollStudentsIntoSemester(students.map(s => s.id), to);
+      }
+
       await this.prisma.auditLog.create({
         data: {
           action: 'SEMESTER_PROMOTION_SPECIFIC',
@@ -240,6 +244,10 @@ export class UsersService {
         }
       }
 
+      if (sem < 6) {
+        await this.enrollStudentsIntoSemester(cohort.map(s => s.id), sem + 1);
+      }
+
       summary[`Sem_${sem}_to_${sem === 6 ? 'Graduated' : sem + 1}`] = cohort.length;
       totalPromoted += cohort.length;
     }
@@ -257,6 +265,25 @@ export class UsersService {
       summary,
       message: `Bulk semester rollover completed successfully for ${totalPromoted} students.`
     };
+  }
+
+  private async enrollStudentsIntoSemester(studentIds: string[], semester: number) {
+    if (!studentIds.length || semester > 6) return;
+    const sections = await this.prisma.section.findMany({
+      where: { subject: { semester } }
+    });
+    for (const stId of studentIds) {
+      for (const sec of sections) {
+        const existing = await this.prisma.enrollment.findFirst({
+          where: { studentProfileId: stId, sectionId: sec.id }
+        });
+        if (!existing) {
+          await this.prisma.enrollment.create({
+            data: { studentProfileId: stId, sectionId: sec.id }
+          }).catch(() => {});
+        }
+      }
+    }
   }
 
   async updateFacePhoto(userId: string, base64Photo: string) {

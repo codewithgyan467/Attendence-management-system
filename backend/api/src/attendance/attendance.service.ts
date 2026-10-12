@@ -74,9 +74,13 @@ export class AttendanceService {
     // 2. Fetch timetable entries for this day
     let termFilter: any = {};
     if (params?.semester) {
-      const termName = params.semester === 1 ? '1st Semester' : '3rd Semester';
-      const term = await this.prisma.academicTerm.findFirst({ where: { name: termName } });
-      if (term) termFilter = { academicTermId: term.id };
+      termFilter = {
+        section: {
+          subject: {
+            semester: params.semester
+          }
+        }
+      };
     }
 
     const entries = await this.prisma.timetableEntry.findMany({
@@ -578,14 +582,33 @@ export class AttendanceService {
 
     // 3. Student Section Enrollment Authorization Check
     if (session.timetableEntry?.sectionId) {
-      const isEnrolled = await this.prisma.enrollment.findFirst({
+      let isEnrolled = await this.prisma.enrollment.findFirst({
         where: {
           studentProfileId: data.studentProfileId,
           sectionId: session.timetableEntry.sectionId
         }
       });
       if (!isEnrolled) {
-        throw new BadRequestException('NOT_ENROLLED_IN_SECTION: You are not enrolled in this subject section');
+        // Fallback: Check if student belongs to the matching semester
+        const student = await this.prisma.studentProfile?.findUnique({
+          where: { id: data.studentProfileId }
+        });
+        const subject = session.timetableEntry.section?.subject;
+        if (student && subject && student.semester === subject.semester) {
+          // Auto-enroll legitimate student so they are never blocked from their class
+          isEnrolled = await this.prisma.enrollment.create({
+            data: {
+              studentProfileId: student.id,
+              sectionId: session.timetableEntry.sectionId,
+              academicTermId: session.timetableEntry.academicTermId
+            }
+          });
+        } else {
+          const detail = (student && subject)
+            ? ` (You are in Semester ${student.semester}, but this class is for Semester ${subject.semester})`
+            : '';
+          throw new BadRequestException(`NOT_ENROLLED_IN_SECTION: You are not enrolled in this subject section${detail}`);
+        }
       }
     }
 

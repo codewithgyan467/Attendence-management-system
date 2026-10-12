@@ -127,13 +127,25 @@ export class AuthService {
       }
     }
 
-    let targetSectionId = dto.sectionId;
-    if (!targetSectionId) {
-      const existingSection = await this.prisma.section.findFirst({
-        where: { subject: { departmentId: targetDeptId } }
-      }) || await this.prisma.section.findFirst();
-      if (existingSection) {
-        targetSectionId = existingSection.id;
+    const studentSemester = Number(dto.semester) || 1;
+    let targetSectionIds: string[] = dto.sectionId ? [dto.sectionId] : [];
+    if (targetSectionIds.length === 0) {
+      const semSections = await this.prisma.section.findMany({
+        where: {
+          subject: {
+            departmentId: targetDeptId,
+            semester: studentSemester
+          }
+        }
+      });
+      if (semSections.length > 0) {
+        targetSectionIds = semSections.map(s => s.id);
+      } else {
+        const fallbackSections = await this.prisma.section.findMany({
+          where: { subject: { departmentId: targetDeptId } },
+          take: 5
+        });
+        targetSectionIds = fallbackSections.map(s => s.id);
       }
     }
 
@@ -201,11 +213,11 @@ export class AuthService {
         });
       }
 
-      if (targetSectionId) {
+      for (const sId of targetSectionIds) {
         await tx.enrollment.create({
           data: {
             studentProfileId: studentProfile.id,
-            sectionId: targetSectionId,
+            sectionId: sId,
           }
         });
       }

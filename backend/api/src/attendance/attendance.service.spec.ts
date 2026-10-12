@@ -37,6 +37,11 @@ describe('AttendanceService (Core Business Logic & Rules Engine)', () => {
       enrollment: {
         findFirst: vi.fn(),
       },
+      studentProfile: {
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+      },
       facultyProfile: {
         findFirst: vi.fn(),
       },

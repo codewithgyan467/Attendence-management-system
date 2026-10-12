@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_URL } from '@/lib/api';
 import ClockWidget from '@/components/ClockWidget';
+import FacultyAnalytics from '@/components/FacultyAnalytics';
 
 export default function FacultyDashboard() {
   const [token, setToken] = useState<string | null>(null);
@@ -82,7 +83,7 @@ export default function FacultyDashboard() {
     fetchScheduleAndClasses(storedToken, simDay, simTime);
   }, [fetchScheduleAndClasses, simDay, simTime]);
 
-  // Periodic roster polling
+  // Periodic roster polling when session is active
   useEffect(() => {
     if (!token || !scheduleData?.session?.id) return;
     const interval = setInterval(async () => {
@@ -117,173 +118,212 @@ export default function FacultyDashboard() {
     window.location.href = '/';
   };
 
-  return (
-    <div className="relative min-h-screen bg-[#070b14] text-white p-4 sm:p-6 md:p-8 overflow-x-hidden bg-grid-mesh">
-      {/* Ambient background glows */}
-      <div className="absolute top-10 right-10 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-10 left-10 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+  const presentCount = roster.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length;
+  const pendingCount = roster.filter(r => r.status === 'PENDING').length;
 
-      <div className="relative z-10 max-w-5xl mx-auto space-y-6 sm:space-y-8">
+  return (
+    <div className="min-vh-100 bg-light py-4 text-dark">
+      <div className="container" style={{ maxWidth: 1040 }}>
         
         {/* Interactive Faculty Profile Header Card */}
-        <div className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-white/10 relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-            <div className="flex items-center gap-4 sm:gap-5">
-              {/* Faculty Avatar */}
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-800 border-2 border-purple-400/40 overflow-hidden shadow-xl flex items-center justify-center font-bold text-xl text-purple-200 shrink-0">
-                <span>{userProfile?.firstName?.[0] || 'D'}{userProfile?.lastName?.[0] || 'R'}</span>
-              </div>
-
-              {/* Faculty Details */}
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                    {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : facultyName}
-                  </h1>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    👨‍🏫 FACULTY
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
-                    Active Session Lead
-                  </span>
+        <div className="card shadow-sm border-0 rounded-4 mb-4 bg-white">
+          <div className="card-body p-4">
+            <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+              <div className="d-flex align-items-center gap-3">
+                {/* Faculty Avatar */}
+                <div 
+                  className="rounded-circle bg-primary-subtle text-primary border border-2 border-primary-subtle d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                  style={{ width: 72, height: 72, fontSize: 24 }}
+                >
+                  <span>{userProfile?.firstName?.[0] || 'D'}{userProfile?.lastName?.[0] || 'R'}</span>
                 </div>
 
-                <p className="text-xs text-slate-400">
-                  Assam Engineering College • Department of Computer Applications
-                </p>
+                {/* Faculty Details */}
+                <div>
+                  <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <h3 className="h4 fw-bold mb-0 text-dark">
+                      {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : facultyName}
+                    </h3>
+                    <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill">
+                      👨‍🏫 FACULTY
+                    </span>
+                    <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                      Active Session Lead
+                    </span>
+                  </div>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300 pt-1 font-mono">
-                  <span>Emp ID: <strong className="text-amber-300">{userProfile?.facultyProfile?.employeeId || 'FAC-MCA-01'}</strong></span>
-                  <span>•</span>
-                  <span>Email: <strong className="text-purple-300">{userProfile?.email || 'faculty@aec.ac.in'}</strong></span>
-                  {userProfile?.phone && (
-                    <>
-                      <span>•</span>
-                      <span>Phone: <strong className="text-slate-300">{userProfile.phone}</strong></span>
-                    </>
-                  )}
+                  <p className="small text-muted mb-1">
+                    Assam Engineering College • Department of Computer Applications
+                  </p>
+
+                  <div className="d-flex flex-wrap align-items-center gap-2 small text-secondary font-monospace">
+                    <span>Emp ID: <strong className="text-dark">{userProfile?.facultyProfile?.employeeId || 'FAC-MCA-01'}</strong></span>
+                    <span>•</span>
+                    <span>Email: <strong className="text-dark">{userProfile?.email || 'faculty@aec.ac.in'}</strong></span>
+                    {userProfile?.phone && (
+                      <>
+                        <span>•</span>
+                        <span>Phone: <strong className="text-dark">{userProfile.phone}</strong></span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Timetable Status & Logout */}
-            <div className="flex items-center gap-3 self-end md:self-center">
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-emerald-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                Timetable Enforced
-              </span>
-              <button 
-                onClick={handleLogout}
-                className="px-4 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
-              >
-                Logout
-              </button>
+              {/* Status and Logout */}
+              <div className="d-flex align-items-center gap-2 align-self-end align-self-md-center">
+                <span className="badge bg-light text-secondary border px-3 py-2 rounded-pill small">
+                  ● Timetable Enforced
+                </span>
+                <button 
+                  onClick={handleLogout}
+                  className="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Live Clock & Routine Calendar Component */}
-        <ClockWidget 
-          scheduleData={scheduleData}
-          onSimulationChange={handleSimulation}
-          selectedSimulation={simChoice}
-        />
+        {/* Live Clock & Timetable Routine Component */}
+        <div className="mb-4">
+          <ClockWidget 
+            scheduleData={scheduleData}
+            onSimulationChange={handleSimulation}
+            selectedSimulation={simChoice}
+          />
+        </div>
 
         {/* Live Active Session Panel */}
         {scheduleData?.active && scheduleData?.slot ? (
-          <div className="space-y-6">
-            <div className="glass-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 border-indigo-500/30 bg-indigo-500/[0.04]">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-4 mb-4">
+            <div className="card shadow-sm border-0 rounded-4 bg-white mb-4">
+              <div className="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 mb-2 animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span> In Progress: Routine Timetable Slot
-                  </div>
-                  <h2 className="text-xl sm:text-3xl font-extrabold text-white">
+                  <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill mb-1">
+                    ● Session Open
+                  </span>
+                  <h4 className="fw-bold text-dark mb-0">
                     {scheduleData.slot.subject} ({scheduleData.slot.code})
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                    Slot: {scheduleData.slot.startTime} — {scheduleData.slot.endTime} • Room: {scheduleData.slot.classroom} • Type: {scheduleData.slot.type}
-                  </p>
+                  </h4>
+                </div>
+                <div className="text-end">
+                  <span className="badge bg-light text-dark border">
+                    Room {scheduleData.slot.classroom}
+                  </span>
+                  <div className="small text-muted mt-1">
+                    {scheduleData.slot.startTime} — {scheduleData.slot.endTime}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Attendance Stats Cards */}
-            <div className="grid grid-cols-2 gap-4 sm:gap-6">
-              <div className="glass-panel rounded-2xl p-5 sm:p-6 text-center border-emerald-500/20 bg-emerald-500/[0.04]">
-                <span className="text-xs font-bold uppercase text-emerald-300 tracking-wider">Present Students</span>
-                <div className="text-3xl sm:text-5xl font-extrabold text-emerald-400 mt-1">
-                  {roster.filter(r => r.status === 'PRESENT' || r.status === 'LATE').length}
-                </div>
-              </div>
-              <div className="glass-panel rounded-2xl p-5 sm:p-6 text-center border-amber-500/20 bg-amber-500/[0.04]">
-                <span className="text-xs font-bold uppercase text-amber-300 tracking-wider">Pending Roster</span>
-                <div className="text-3xl sm:text-5xl font-extrabold text-amber-400 mt-1">
-                  {roster.filter(r => r.status === 'PENDING').length}
-                </div>
-              </div>
-            </div>
-
-            {/* Live Student Roster */}
-            <div className="glass-panel rounded-2xl sm:rounded-3xl overflow-hidden">
-              <div className="p-4 sm:p-6 border-b border-white/10 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                <h3 className="font-bold text-base sm:text-lg text-white">
-                  Live Attendance Stream ({roster.length} registered students)
-                </h3>
-                <span className="text-xs text-slate-400">Auto-refreshing every 4 seconds</span>
-              </div>
-              
-              {roster.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 text-sm">
-                  Waiting for enrolled students to complete face and location verification...
-                </div>
-              ) : (
-                <div className="divide-y divide-white/5 max-h-96 overflow-y-auto">
-                  {roster.map((student) => (
-                    <div key={student.id} className="p-4 sm:p-5 flex items-center justify-between hover:bg-white/[0.03] transition-colors">
-                      <div className="flex items-center gap-3.5">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm ${
-                          student.status === 'PRESENT' || student.status === 'LATE'
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                            : 'bg-slate-500/20 text-slate-400 border border-slate-500/40'
-                        }`}>
-                          {student.status === 'PRESENT' || student.status === 'LATE' ? '✓' : '—'}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm sm:text-base text-white">{student.name}</p>
-                          <p className="text-xs text-slate-400 font-mono">{student.enrollmentNo}</p>
-                        </div>
-                      </div>
-                      <div>
-                        {student.status === 'PRESENT' ? (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            Present
-                          </span>
-                        ) : student.status === 'LATE' ? (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            Late
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/20 text-slate-400 border border-slate-500/30">
-                            Pending
-                          </span>
-                        )}
-                      </div>
+              <div className="card-body p-4">
+                {/* Stats Row */}
+                <div className="row g-3 mb-4">
+                  <div className="col-6">
+                    <div className="p-3 bg-light rounded-3 border text-center">
+                      <span className="text-muted small fw-semibold text-uppercase">Present Students</span>
+                      <div className="display-6 fw-bold text-success mt-1">{presentCount}</div>
                     </div>
-                  ))}
+                  </div>
+                  <div className="col-6">
+                    <div className="p-3 bg-light rounded-3 border text-center">
+                      <span className="text-muted small fw-semibold text-uppercase">Pending in Roster</span>
+                      <div className="display-6 fw-bold text-warning mt-1">{pendingCount}</div>
+                    </div>
+                  </div>
                 </div>
-              )}
+
+                {/* Live Attendance Table */}
+                <div className="border rounded-3 overflow-hidden">
+                  <div className="bg-light px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
+                    <span className="fw-bold small text-dark">
+                      Class Roster Stream ({roster.length} registered students)
+                    </span>
+                    <span className="badge bg-secondary-subtle text-secondary small">
+                      Refreshes every 4s
+                    </span>
+                  </div>
+
+                  {roster.length === 0 ? (
+                    <div className="p-4 text-center text-muted small">
+                      Waiting for enrolled students to verify biometric attendance...
+                    </div>
+                  ) : (
+                    <div className="table-responsive" style={{ maxHeight: 380 }}>
+                      <table className="table table-hover align-middle mb-0">
+                        <thead className="table-light small">
+                          <tr>
+                            <th style={{ width: 60 }}>Status</th>
+                            <th>Student Name</th>
+                            <th>Roll Number</th>
+                            <th className="text-end">Verification</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {roster.map((student) => {
+                            const isPresent = student.status === 'PRESENT';
+                            const isLate = student.status === 'LATE';
+                            return (
+                              <tr key={student.id}>
+                                <td>
+                                  <span className={`badge rounded-circle p-2 ${
+                                    isPresent ? 'bg-success' : isLate ? 'bg-warning' : 'bg-secondary'
+                                  }`}>
+                                    {isPresent ? '✓' : isLate ? '⏰' : '—'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div className="fw-semibold text-dark">{student.name}</div>
+                                </td>
+                                <td>
+                                  <span className="font-monospace text-muted small">{student.enrollmentNo}</span>
+                                </td>
+                                <td className="text-end">
+                                  {isPresent ? (
+                                    <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                                      Present
+                                    </span>
+                                  ) : isLate ? (
+                                    <span className="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill">
+                                      Late
+                                    </span>
+                                  ) : (
+                                    <span className="badge bg-light text-secondary border rounded-pill">
+                                      Pending
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="glass-panel rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center text-slate-400 space-y-2">
-            <div className="text-4xl mb-2">📋</div>
-            <h3 className="text-base sm:text-lg font-bold text-white">No Active Class Scheduled Right Now</h3>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
-              Under strict AEC routine enforcement, attendance sessions automatically open and close precisely with each scheduled timetable slot.
+          <div className="card shadow-sm border-0 rounded-4 bg-white p-5 text-center mb-4">
+            <div className="display-4 mb-2">📋</div>
+            <h5 className="fw-bold text-dark mb-1">No Active Timetable Session Right Now</h5>
+            <p className="text-muted small max-w-md mx-auto mb-0">
+              Under strict AEC routine enforcement, attendance sessions automatically open and close precisely with each scheduled timetable slot. You can use the routine simulator above to preview upcoming sessions.
             </p>
           </div>
         )}
+
+        {/* Faculty Analytics & Department Charts */}
+        <div className="mb-4">
+          <FacultyAnalytics 
+            facultyName={userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : facultyName}
+            totalStudents={roster.length || 68}
+          />
+        </div>
+
       </div>
     </div>
   );

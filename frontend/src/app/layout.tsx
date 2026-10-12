@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
-import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "Assam Engineering College | Attendance System",
@@ -13,14 +13,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" data-bs-theme="light">
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-sans antialiased min-h-screen bg-[#070b14] text-slate-100 selection:bg-indigo-500 selection:text-white overflow-x-hidden">
+      <body className="bg-light text-dark min-vh-100">
         {children}
       </body>
     </html>

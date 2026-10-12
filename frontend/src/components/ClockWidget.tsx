@@ -74,112 +74,113 @@ export default function ClockWidget({ scheduleData, onSimulationChange, selected
   }) : '--:--:--';
 
   return (
-    <div className="glass-panel rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-white/10 space-y-4">
-      {/* Top Bar: Calendar date, live clock, status pill */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-xl">
-            🗓️
+    <div className="card shadow-sm border-0 mb-4 bg-white">
+      <div className="card-body p-4">
+        {/* Top Bar: Calendar date, live clock, status pill */}
+        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 pb-3 mb-3 border-bottom">
+          <div className="d-flex align-items-center gap-3">
+            <div className="rounded-3 bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center fs-4">
+              📅
+            </div>
+            <div>
+              <div className="text-muted small text-uppercase fw-semibold d-flex align-items-center gap-2">
+                <span>{dayName}</span>
+                <span>•</span>
+                <span>{dateFormatted}</span>
+              </div>
+              <div className="fs-4 font-monospace fw-bold text-dark">
+                {timeFormatted} <span className="fs-6 text-muted fw-normal">IST</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-xs uppercase font-bold text-slate-400 tracking-wider flex items-center gap-2">
-              <span>{dayName}</span>
-              <span className="w-1 h-1 rounded-full bg-slate-500"></span>
-              <span>{dateFormatted}</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-mono font-black text-white tracking-tight">
-              {timeFormatted} <span className="text-xs font-normal text-indigo-300">IST</span>
-            </div>
+
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            <span className="badge bg-light text-secondary border">
+              <span className="d-inline-block rounded-circle bg-success me-1.5" style={{ width: '8px', height: '8px' }}></span>
+              Sync: {scheduleData?.clockSource || 'Authoritative Server'}
+            </span>
+
+            {/* Quick Simulation dropdown for testing Routine Slots */}
+            {onSimulationChange && (
+              <select
+                value={selectedSimulation}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'live') {
+                    onSimulationChange(null, null);
+                  } else if (val === 'tue-os') {
+                    onSimulationChange(2, '08:15'); // Tuesday 8:15 AM OS
+                  } else if (val === 'tue-lab') {
+                    onSimulationChange(2, '09:30'); // Tuesday 9:30 AM Lab
+                  } else if (val === 'wed-coa') {
+                    onSimulationChange(3, '11:15'); // Wednesday 11:15 AM COA
+                  } else if (val === 'fri-os') {
+                    onSimulationChange(5, '14:20'); // Friday 2:20 PM OS
+                  }
+                }}
+                className="form-select form-select-sm text-secondary bg-light border"
+                style={{ width: 'auto', minWidth: '180px' }}
+              >
+                <option value="live">⚡ Real-Time IST Clock</option>
+                <option value="tue-os">🧪 Test: Tue 8-9am OS (Sem 1)</option>
+                <option value="tue-lab">🧪 Test: Tue 9-11am Lab (Sem 1)</option>
+                <option value="wed-coa">🧪 Test: Wed 11-12pm COA (Sem 1)</option>
+                <option value="fri-os">🧪 Test: Fri 2-3pm OS (Sem 1)</option>
+              </select>
+            )}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-start">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-white/5 border border-white/10 text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            Sync: {scheduleData?.clockSource || 'WorldTime API'}
-          </span>
+        {/* Routine Session Window Banner */}
+        {scheduleData?.isHoliday ? (
+          <div className="alert alert-warning border-warning-subtle mb-0" role="alert">
+            <div className="fw-bold mb-1">
+              🎉 Institutional Holiday: {scheduleData.holiday?.title}
+            </div>
+            <div className="small">
+              Regular class attendance is suspended today. Only the Administrator has override access.
+            </div>
+          </div>
+        ) : scheduleData?.active && scheduleData?.slot ? (
+          <div className="p-3 rounded-3 bg-primary-subtle border border-primary-subtle d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+            <div>
+              <div className="badge bg-success mb-2">
+                ● Live Attendance Window Open
+              </div>
+              <h5 className="fw-bold text-dark mb-1">
+                {scheduleData.slot.subject} ({scheduleData.slot.code})
+              </h5>
+              <div className="text-muted small">
+                Slot: {scheduleData.slot.startTime} — {scheduleData.slot.endTime} • Room: {scheduleData.slot.classroom} • Type: {scheduleData.slot.type}
+              </div>
+            </div>
 
-          {/* Quick Simulation dropdown for testing Routine Slots */}
-          {onSimulationChange && (
-            <select
-              value={selectedSimulation}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === 'live') {
-                  onSimulationChange(null, null);
-                } else if (val === 'tue-os') {
-                  onSimulationChange(2, '08:15'); // Tuesday 8:15 AM OS
-                } else if (val === 'tue-lab') {
-                  onSimulationChange(2, '09:30'); // Tuesday 9:30 AM Lab
-                } else if (val === 'wed-coa') {
-                  onSimulationChange(3, '11:15'); // Wednesday 11:15 AM COA
-                } else if (val === 'fri-os') {
-                  onSimulationChange(5, '14:20'); // Friday 2:20 PM OS
-                }
-              }}
-              className="text-[11px] sm:text-xs bg-slate-900 border border-indigo-500/30 rounded-xl px-2.5 py-1 text-indigo-200 font-medium cursor-pointer"
-            >
-              <option value="live">⚡ Live Real Clock</option>
-              <option value="tue-os">🧪 Test: Tue 8-9am OS (Sem 1)</option>
-              <option value="tue-lab">🧪 Test: Tue 9-11am Lab (Sem 1)</option>
-              <option value="wed-coa">🧪 Test: Wed 11-12pm COA (Sem 1)</option>
-              <option value="fri-os">🧪 Test: Fri 2-3pm OS (Sem 1)</option>
-            </select>
-          )}
-        </div>
+            <div className="bg-white p-3 rounded-3 border text-start text-sm-end shrink-0">
+              <span className="text-muted text-uppercase fw-semibold" style={{ fontSize: '11px', display: 'block' }}>
+                Time Remaining in Slot:
+              </span>
+              <span className="fs-5 font-monospace fw-bold text-primary">
+                ⏳ {formatSeconds(remaining)}
+              </span>
+              <span className="text-muted" style={{ fontSize: '11px', display: 'block' }}>
+                Closes strictly at {scheduleData.slot.endTime}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 rounded-3 bg-light border d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+            <div className="d-flex align-items-center gap-2 text-muted small">
+              <span className="fs-5">⏳</span>
+              <span>No lecture session active at this moment. The window unlocks during scheduled routine hours.</span>
+            </div>
+            {scheduleData?.nextSlot && (
+              <span className="badge bg-light text-primary border font-monospace">
+                Next: {scheduleData.nextSlot.startTime} — {scheduleData.nextSlot.subject}
+              </span>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* Routine Session Window Banner */}
-      {scheduleData?.isHoliday ? (
-        <div className="p-4 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 space-y-1">
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <span>🎉</span>
-            <span>Institutional Holiday: {scheduleData.holiday?.title}</span>
-          </div>
-          <p className="text-xs text-amber-300/80">
-            Regular class attendance is suspended today. Only the Administrator has override access.
-          </p>
-        </div>
-      ) : scheduleData?.active && scheduleData?.slot ? (
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-950/60 to-slate-900/80 border border-indigo-500/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-              Current Attendance Session Open
-            </div>
-            <h3 className="text-base sm:text-lg font-bold text-white">
-              {scheduleData.slot.subject} ({scheduleData.slot.code})
-            </h3>
-            <p className="text-xs text-slate-300">
-              {scheduleData.slot.term} • Room: {scheduleData.slot.classroom} • Type: {scheduleData.slot.type}
-            </p>
-          </div>
-
-          <div className="bg-slate-950/80 px-4 py-2.5 rounded-xl border border-indigo-500/30 text-left sm:text-right w-full sm:w-auto shrink-0">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-              Time Remaining in Slot:
-            </span>
-            <span className="text-lg sm:text-xl font-mono font-extrabold text-indigo-300">
-              ⏳ {formatSeconds(remaining)}
-            </span>
-            <span className="text-[11px] text-slate-400 block -mt-0.5">
-              Closes strictly at {scheduleData.slot.endTime}
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs text-slate-300">
-          <div className="flex items-center gap-2">
-            <span className="text-base">⏳</span>
-            <span>No lecture active right now. Attendance window will unlock at the next scheduled routine period.</span>
-          </div>
-          {scheduleData?.nextSlot && (
-            <div className="font-mono text-indigo-300 px-3 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 whitespace-nowrap">
-              Next: {scheduleData.nextSlot.startTime} — {scheduleData.nextSlot.subject}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

@@ -99,7 +99,7 @@ export default function LoginPage() {
     try {
       setError('');
       if (!navigator?.mediaDevices?.getUserMedia) {
-        setError('Camera API not supported in this browser. Please use "Phone Selfie" or "Upload File".');
+        setError('Camera API not supported in this browser. Please use selfie upload or gallery file.');
         return;
       }
 
@@ -133,7 +133,7 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error('Camera open error:', err);
       setIsCameraActive(false);
-      setError('Camera permission denied or camera unavailable. You can use "Phone Selfie" or "Upload File" below.');
+      setError('Camera access not granted. You can use selfie upload or device photo below.');
     }
   };
 
@@ -159,46 +159,42 @@ export default function LoginPage() {
         setError('');
         const optimized = await compressImage(file, 800, 800, 0.75);
         setRegFaceImage(optimized);
-        stopCamera();
-      } catch (err) {
-        setError('Failed to process image file. Please try another image.');
+      } catch {
+        setError('Failed to process image file. Please try a different photo.');
       }
     }
   };
 
-  // --- Handlers ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginLoading(true);
     setError('');
     setSuccessMsg('');
-    setLoginLoading(true);
 
     try {
-      const cleanEmail = email.trim().toLowerCase();
-      const cleanPassword = password.trim();
-
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || 'Login failed');
+        throw new Error(data.message || 'Invalid credentials. Please verify your login details.');
       }
 
-      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('token', data.accessToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
 
-      if (role === 'ADMIN') {
-        router.push('/admin/dashboard');
-      } else if (role === 'FACULTY') {
+      if (data.user.role === 'STUDENT') {
+        router.push('/student/dashboard');
+      } else if (data.user.role === 'FACULTY') {
         router.push('/faculty/dashboard');
       } else {
         router.push('/student/dashboard');
       }
     } catch (err: any) {
-      setError(err.message || 'Network error or service unavailable');
+      setError(err.message || 'Server connection failed.');
     } finally {
       setLoginLoading(false);
     }
@@ -215,7 +211,7 @@ export default function LoginPage() {
     }
 
     if (regPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError('Password must be at least 6 characters long');
       return;
     }
 
@@ -226,13 +222,14 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          email: regEmail.trim(),
+          password: regPassword,
+          role: 'STUDENT',
           firstName: regFirstName.trim(),
           lastName: regLastName.trim(),
-          email: regEmail.trim().toLowerCase(),
           phone: regPhone.trim() || undefined,
-          enrollmentNo: regEnrollmentNo.trim().toUpperCase(),
+          enrollmentNo: regEnrollmentNo.trim(),
           semester: Number(regSemester),
-          password: regPassword,
           faceImage: regFaceImage || undefined,
         }),
       });
@@ -242,15 +239,15 @@ export default function LoginPage() {
         throw new Error(data.message || 'Registration failed');
       }
 
-      // Automatically store token and enter student portal
-      localStorage.setItem('token', data.access_token);
-      setSuccessMsg('Registration successful! Launching your student dashboard...');
+      setSuccessMsg('Registration completed! Signing you into portal...');
+      localStorage.setItem('token', data.accessToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
 
       setTimeout(() => {
         router.push('/student/dashboard');
-      }, 1200);
+      }, 1000);
     } catch (err: any) {
-      setError(err.message || 'Registration failed. Please check your details.');
+      setError(err.message || 'Failed to complete registration');
     } finally {
       setRegLoading(false);
     }
@@ -260,6 +257,12 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
+
+    if (!forgotIdentifier.trim()) {
+      setError('Please provide your registered institute email.');
+      return;
+    }
+
     setForgotLoading(true);
 
     try {
@@ -274,8 +277,8 @@ export default function LoginPage() {
         throw new Error(data.message || 'Failed to request OTP');
       }
 
-      setForgotStep(2);
       setSuccessMsg(data.message || 'Verification code sent to your email.');
+      setForgotStep(2);
     } catch (err: any) {
       setError(err.message || 'Failed to request OTP.');
     } finally {
@@ -383,7 +386,7 @@ export default function LoginPage() {
       } else {
         setDemoSessionStatus(`Failed to start session: ${data.message}`);
       }
-    } catch (err) {
+    } catch {
       setDemoSessionStatus('Network error while launching live session.');
     } finally {
       setDemoSessionLoading(false);
@@ -398,797 +401,654 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-[#070b14] text-slate-100 bg-grid-mesh overflow-hidden flex flex-col justify-between">
-      {/* Background glowing gradients */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-sky-500/15 rounded-full blur-[140px] pointer-events-none -translate-y-1/2"></div>
-      <div className="absolute top-1/2 right-0 w-[450px] h-[450px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none"></div>
-      <div className="absolute bottom-0 left-10 w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[130px] pointer-events-none translate-y-1/3"></div>
-
-      {/* Floating Header */}
-      <header className="relative z-20 w-full px-4 sm:px-8 py-4 sm:py-5">
-        <div className="max-w-7xl mx-auto glass-panel rounded-2xl px-5 py-3.5 flex items-center justify-between border border-white/10 shadow-2xl">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-black text-white text-base shadow-lg shadow-sky-500/25">
+    <div className="min-vh-100 bg-light d-flex flex-column justify-content-between text-dark">
+      
+      {/* Top Navbar */}
+      <header className="navbar navbar-light bg-white border-bottom shadow-sm py-2 px-3 px-md-4">
+        <div className="container-fluid max-w-5xl d-flex align-items-center justify-content-between">
+          <div className="d-flex align-items-center gap-2">
+            <div 
+              className="rounded-3 bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+              style={{ width: 36, height: 36, fontSize: 18 }}
+            >
               A
             </div>
             <div>
-              <span className="text-sm font-bold tracking-tight text-white block">Assam Engineering College</span>
-              <span className="text-[11px] font-medium text-slate-400 block -mt-0.5">MCA Smart Attendance & Hardware Gateway</span>
+              <span className="fw-bold d-block text-dark small">Assam Engineering College</span>
+              <span className="text-muted d-block" style={{ fontSize: 11 }}>MCA Attendance Portal</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden md:inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              GPS Locked: 26.140537, 91.656738 (500m)
-            </div>
+          <div className="d-flex align-items-center gap-2">
+            <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 small d-none d-sm-inline-flex">
+              ● Portal Active
+            </span>
             <button
               onClick={handleStartDemoSession}
               disabled={demoSessionLoading}
-              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 transition-all flex items-center gap-1.5"
+              className="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold"
             >
-              ⚡ {demoSessionLoading ? 'Launching...' : 'Start Live Test Session'}
+              ⚡ {demoSessionLoading ? 'Launching...' : 'Start Test Session'}
             </button>
           </div>
         </div>
-
-        {demoSessionStatus && (
-          <div className="max-w-7xl mx-auto mt-2 p-2.5 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-200 text-xs text-center font-medium">
-            ✅ {demoSessionStatus}
-          </div>
-        )}
       </header>
 
-      {/* Main Content Area */}
-      <main className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-8 py-6 sm:py-10 flex-1 flex flex-col justify-center">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      {demoSessionStatus && (
+        <div className="container mt-3" style={{ maxWidth: 540 }}>
+          <div className="alert alert-info border-info-subtle py-2 px-3 small text-center mb-0">
+            ✅ {demoSessionStatus}
+          </div>
+        </div>
+      )}
+
+      {/* Main Authentication Card */}
+      <main className="container my-auto py-4" style={{ maxWidth: 540 }}>
+        <div className="card shadow-sm border-0 rounded-4 bg-white p-4 p-md-5">
           
-          {/* Left Column: Hero & Universal Campus Features */}
-          <div className="lg:col-span-6 space-y-6">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-300 border border-sky-500/20">
-                <span className="w-2 h-2 rounded-full bg-sky-400"></span>
-                Universal University Edition
-              </div>
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-[1.1] text-white">
-                Zero-Admin <span className="text-gradient-cyan">Onboarding</span>.
-                <span className="block mt-1 sm:mt-2 text-2xl sm:text-4xl font-extrabold text-slate-300">
-                  Real-World Hardware Verified.
-                </span>
-              </h1>
-              <p className="text-sm sm:text-base text-slate-400 max-w-xl leading-relaxed">
-                Direct student self-registration eliminates administrative data entry bottlenecks. Students enroll with real-time face biometric templates, verified by classroom ESP32 Bluetooth beacons and dynamic GPS geofences.
-              </p>
-            </div>
-
-            {/* Feature Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2">
-              <div className="card-glow-blue rounded-2xl p-4 flex flex-col justify-between space-y-2">
-                <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300 text-sm">
-                  👤
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-1">Self-Registration</h3>
-                  <p className="text-[11px] text-slate-300 leading-snug">
-                    Students register directly with face image and roll number into cloud database.
-                  </p>
-                </div>
-              </div>
-
-              <div className="card-glow-purple rounded-2xl p-4 flex flex-col justify-between space-y-2">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300 text-sm">
-                  📍
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-1">Dynamic GPS</h3>
-                  <p className="text-[11px] text-slate-300 leading-snug">
-                    Admin can set classroom coordinates worldwide. Current: 26.140537, 91.656738.
-                  </p>
-                </div>
-              </div>
-
-              <div className="card-glow-emerald rounded-2xl p-4 flex flex-col justify-between space-y-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 text-sm">
-                  📡
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-1">ESP32 BLE Beacon</h3>
-                  <p className="text-[11px] text-slate-300 leading-snug">
-                    Flashed microcontroller emits rolling HMAC challenge tokens every 60 seconds.
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div className="text-center mb-4">
+            <h3 className="fw-bold text-dark mb-1">Attendance Portal</h3>
+            <p className="text-muted small mb-0">
+              Sign in with your institutional credentials to access your dashboard
+            </p>
           </div>
 
-          {/* Right Column: Portal Card with Tabs (Login, Register, Forgot Password) */}
-          <div id="login-box" className="lg:col-span-6 w-full">
-            <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/15 shadow-2xl relative">
-              
-              {/* Primary View Switcher Tabs */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+          {/* Primary View Switcher Tabs */}
+          <div className="nav nav-pills nav-fill bg-light p-1 rounded-3 mb-4">
+            <button
+              type="button"
+              onClick={() => { setViewMode('login'); setError(''); setSuccessMsg(''); stopCamera(); }}
+              className={`nav-link py-2 small fw-bold rounded-3 ${
+                viewMode === 'login' ? 'active bg-white text-dark shadow-sm' : 'text-muted'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setViewMode('register'); setError(''); setSuccessMsg(''); }}
+              className={`nav-link py-2 small fw-bold rounded-3 ${
+                viewMode === 'register' ? 'active bg-white text-dark shadow-sm' : 'text-muted'
+              }`}
+            >
+              Registration
+            </button>
+            <button
+              type="button"
+              onClick={() => { setViewMode('forgot'); setError(''); setSuccessMsg(''); stopCamera(); }}
+              className={`nav-link py-2 small fw-bold rounded-3 ${
+                viewMode === 'forgot' ? 'active bg-white text-dark shadow-sm' : 'text-muted'
+              }`}
+            >
+              Reset Password
+            </button>
+          </div>
+
+          {/* Status & Error Alerts */}
+          {error && (
+            <div className="alert alert-danger border-danger-subtle py-2.5 px-3 small rounded-3 d-flex align-items-center gap-2 mb-3">
+              <span>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+          {successMsg && (
+            <div className="alert alert-success border-success-subtle py-2.5 px-3 small rounded-3 d-flex align-items-center gap-2 mb-3">
+              <span>✅</span>
+              <span>{successMsg}</span>
+            </div>
+          )}
+
+          {/* VIEW 1: SIGN IN FORM */}
+          {viewMode === 'login' && (
+            <div>
+              {/* Role Selector Tabs */}
+              <div className="btn-group w-100 mb-4" role="group">
                 <button
                   type="button"
-                  onClick={() => { setViewMode('login'); setError(''); setSuccessMsg(''); stopCamera(); }}
-                  className={`text-xs sm:text-sm font-bold pb-2 transition-all border-b-2 text-center ${
-                    viewMode === 'login'
-                      ? 'border-sky-400 text-white'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
+                  onClick={() => setRole('STUDENT')}
+                  className={`btn btn-sm py-2 fw-semibold ${role === 'STUDENT' ? 'btn-primary' : 'btn-outline-secondary'}`}
                 >
-                  Sign In
+                  Student
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setViewMode('register'); setError(''); setSuccessMsg(''); }}
-                  className={`text-xs sm:text-sm font-bold pb-2 transition-all border-b-2 text-center truncate ${
-                    viewMode === 'register'
-                      ? 'border-indigo-400 text-white'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
+                  onClick={() => setRole('FACULTY')}
+                  className={`btn btn-sm py-2 fw-semibold ${role === 'FACULTY' ? 'btn-primary' : 'btn-outline-secondary'}`}
                 >
-                  <span className="sm:inline hidden">Student </span>Registration
+                  Faculty
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setViewMode('forgot'); setError(''); setSuccessMsg(''); stopCamera(); }}
-                  className={`text-xs sm:text-sm font-bold pb-2 transition-all border-b-2 text-center truncate ${
-                    viewMode === 'forgot'
-                      ? 'border-purple-400 text-white'
-                      : 'border-transparent text-slate-400 hover:text-slate-200'
-                  }`}
+                  onClick={() => setRole('ADMIN')}
+                  className={`btn btn-sm py-2 fw-semibold ${role === 'ADMIN' ? 'btn-primary' : 'btn-outline-secondary'}`}
                 >
-                  Reset <span className="sm:inline hidden">Password</span>
+                  Admin
                 </button>
               </div>
 
-              {/* Status & Error Alerts */}
-              {error && (
-                <div className="mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-200 text-xs font-medium flex items-center gap-2">
-                  <span>⚠️</span>
-                  <span>{error}</span>
+              <form onSubmit={handleLogin} className="space-y-3">
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold text-secondary mb-1">
+                    Institute Email
+                  </label>
+                  <input
+                    type="email"
+                    className="form-control form-control-lg rounded-3 fs-6"
+                    placeholder="user@aec.ac.in"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
                 </div>
-              )}
-              {successMsg && (
-                <div className="mb-4 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 text-xs font-medium flex items-center gap-2">
-                  <span>✅</span>
-                  <span>{successMsg}</span>
-                </div>
-              )}
 
-              {/* VIEW 1: SIGN IN FORM */}
-              {viewMode === 'login' && (
-                <div>
-                  {/* Role Selector Tabs */}
-                  <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-950/70 border border-white/10 mb-5">
+                <div className="mb-4">
+                  <div className="d-flex align-items-center justify-content-between mb-1">
+                    <label className="form-label small fw-semibold text-secondary mb-0">
+                      Password
+                    </label>
                     <button
                       type="button"
-                      onClick={() => setRole('STUDENT')}
-                      className={`py-2 px-2 rounded-xl text-xs font-bold transition-all text-center ${
-                        role === 'STUDENT'
-                          ? 'bg-sky-500 text-white shadow-md shadow-sky-500/30'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
+                      onClick={() => setViewMode('forgot')}
+                      className="btn btn-link p-0 text-decoration-none small"
+                      style={{ fontSize: 12 }}
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    className="form-control form-control-lg rounded-3 fs-6"
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className="btn btn-primary btn-lg w-100 py-2.5 rounded-3 fw-bold shadow-sm"
+                >
+                  {loginLoading ? (
+                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                  ) : (
+                    <span>Sign In to {role.charAt(0) + role.slice(1).toLowerCase()} Portal →</span>
+                  )}
+                </button>
+              </form>
+
+              {/* 1-Click Demo Fillers */}
+              <div className="mt-4 pt-3 border-top text-center">
+                <p className="text-muted small mb-2">Quick 1-Click Test Accounts:</p>
+                <div className="row g-2">
+                  <div className="col-4">
+                    <button
+                      type="button"
+                      onClick={() => fillDemo('STUDENT', 'student.mca@aec.ac.in', 'Student@123')}
+                      className="btn btn-outline-secondary btn-sm w-100 py-1.5 small text-nowrap"
                     >
                       Student
                     </button>
+                  </div>
+                  <div className="col-4">
                     <button
                       type="button"
-                      onClick={() => setRole('FACULTY')}
-                      className={`py-2 px-2 rounded-xl text-xs font-bold transition-all text-center ${
-                        role === 'FACULTY'
-                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
+                      onClick={() => fillDemo('FACULTY', 'sbordoloi.mca@aec.ac.in', 'Faculty@123')}
+                      className="btn btn-outline-secondary btn-sm w-100 py-1.5 small text-nowrap"
                     >
                       Faculty
                     </button>
+                  </div>
+                  <div className="col-4">
                     <button
                       type="button"
-                      onClick={() => setRole('ADMIN')}
-                      className={`py-2 px-2 rounded-xl text-xs font-bold transition-all text-center ${
-                        role === 'ADMIN'
-                          ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
+                      onClick={() => fillDemo('ADMIN', 'admin@aec.ac.in', 'Admin@123')}
+                      className="btn btn-outline-secondary btn-sm w-100 py-1.5 small text-nowrap"
                     >
                       Admin
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                        Institute Email
-                      </label>
-                      <input
-                        type="email"
-                        className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-slate-950/80 border-white/15"
-                        placeholder="user@aec.ac.in"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        autoComplete="email"
+          {/* VIEW 2: DIRECT STUDENT SELF-REGISTRATION */}
+          {viewMode === 'register' && (
+            <div>
+              <div className="mb-3">
+                <h6 className="fw-bold text-dark mb-0">Student Self-Onboarding</h6>
+                <p className="small text-muted mb-0">
+                  Register with your institutional details and enroll biometric face template.
+                </p>
+              </div>
+
+              <form onSubmit={handleRegister} className="space-y-3">
+                <div className="row g-2 mb-2">
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">First Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="John"
+                      className="form-control form-control-sm rounded-2"
+                      value={regFirstName}
+                      onChange={(e) => setRegFirstName(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Last Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Doe"
+                      className="form-control form-control-sm rounded-2"
+                      value={regLastName}
+                      onChange={(e) => setRegLastName(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="row g-2 mb-2">
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Institute Email</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="student@univ.edu"
+                      className="form-control form-control-sm rounded-2"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Phone Number</label>
+                    <input
+                      type="tel"
+                      placeholder="+91 9876543210"
+                      className="form-control form-control-sm rounded-2"
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="row g-2 mb-2">
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Roll / Enrollment</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="AEC-MCA-2026-001"
+                      className="form-control form-control-sm rounded-2"
+                      value={regEnrollmentNo}
+                      onChange={(e) => setRegEnrollmentNo(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Semester</label>
+                    <select
+                      className="form-select form-select-sm rounded-2"
+                      value={regSemester}
+                      onChange={(e) => setRegSemester(Number(e.target.value))}
+                    >
+                      <option value={1}>Semester 1</option>
+                      <option value={2}>Semester 2</option>
+                      <option value={3}>Semester 3</option>
+                      <option value={4}>Semester 4</option>
+                      <option value={5}>Semester 5</option>
+                      <option value={6}>Semester 6</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="row g-2 mb-3">
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Password</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      className="form-control form-control-sm rounded-2"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">Confirm Password</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      className="form-control form-control-sm rounded-2"
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Biometric Face Template Capture */}
+                <div className="p-3 bg-light rounded-3 border mb-3">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <span className="small fw-bold text-dark">
+                      📷 Biometric Face Photo Enrollment
+                    </span>
+                    {regFaceImage && (
+                      <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                        ✓ Photo Ready
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Video viewfinder */}
+                  {isCameraActive && (
+                    <div className="position-relative rounded-2 overflow-hidden bg-dark mb-2 shadow-sm" style={{ aspectRatio: '4/3' }}>
+                      <video
+                        ref={(el) => {
+                          videoRef.current = el;
+                          if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                            el.srcObject = streamRef.current;
+                            el.play().catch(() => {});
+                          }
+                        }}
+                        onLoadedMetadata={(e) => e.currentTarget.play().catch(() => {})}
+                        className="w-100 h-100 object-fit-cover"
+                        autoPlay
+                        playsInline
+                        muted
                       />
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                          Password
-                        </label>
+                      <div className="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-circle" style={{ width: 130, height: 160, pointerEvents: 'none' }}></div>
+                      <div className="position-absolute bottom-0 start-50 translate-middle-x mb-2 d-flex gap-2">
                         <button
                           type="button"
-                          onClick={() => setViewMode('forgot')}
-                          className="text-[11px] text-sky-400 hover:underline font-semibold"
+                          onClick={capturePhoto}
+                          className="btn btn-success btn-sm fw-bold rounded-pill px-3 shadow"
                         >
-                          Forgot Password?
+                          Capture Photo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={stopCamera}
+                          className="btn btn-secondary btn-sm rounded-pill px-2"
+                        >
+                          Cancel
                         </button>
                       </div>
-                      <input
-                        type="password"
-                        className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-slate-950/80 border-white/15"
-                        placeholder="••••••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        autoComplete="current-password"
+                    </div>
+                  )}
+
+                  {/* Photo preview */}
+                  {regFaceImage && !isCameraActive && (
+                    <div className="d-flex align-items-center gap-3">
+                      <img
+                        src={regFaceImage}
+                        alt="Biometric Preview"
+                        className="rounded-3 object-fit-cover border border-2 border-primary shadow-sm"
+                        style={{ width: 60, height: 60 }}
                       />
+                      <div>
+                        <span className="small text-dark fw-medium d-block">Face Image Attached</span>
+                        <div className="d-flex gap-2 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => { setRegFaceImage(null); startCamera(); }}
+                            className="btn btn-link p-0 small text-decoration-none"
+                            style={{ fontSize: 12 }}
+                          >
+                            Retake Photo
+                          </button>
+                          <span className="text-muted">•</span>
+                          <label className="btn btn-link p-0 small text-decoration-none cursor-pointer mb-0" style={{ fontSize: 12 }}>
+                            Re-upload
+                            <input type="file" accept="image/*" onChange={handleFileUpload} className="d-none" />
+                          </label>
+                        </div>
+                      </div>
                     </div>
+                  )}
 
-                    <button
-                      type="submit"
-                      disabled={loginLoading}
-                      className="shimmer-btn glass-btn w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg mt-5 disabled:opacity-50"
-                    >
-                      {loginLoading ? (
-                        <span className="inline-flex items-center gap-2">
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                          Authenticating...
-                        </span>
-                      ) : (
-                        <span>Sign In to {role.charAt(0) + role.slice(1).toLowerCase()} Portal →</span>
-                      )}
-                    </button>
-                  </form>
-
-                  {/* 1-Click Demo Fillers */}
-                  <div className="mt-5 pt-4 border-t border-white/10 text-center">
-                    <p className="text-[11px] text-slate-400 mb-2 font-medium">Quick 1-Click Test Accounts:</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fillDemo('STUDENT', 'student.mca@aec.ac.in', 'Student@123')}
-                        className="px-2 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-sky-300 transition-colors"
-                      >
-                        Student (MCA)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => fillDemo('FACULTY', 'sbordoloi.mca@aec.ac.in', 'Faculty@123')}
-                        className="px-2 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-indigo-300 transition-colors"
-                      >
-                        Faculty (MCA)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => fillDemo('ADMIN', 'admin@aec.ac.in', 'Admin@123')}
-                        className="px-2 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-purple-300 transition-colors"
-                      >
-                        Super Admin
-                      </button>
+                  {/* Camera & upload actions */}
+                  {!regFaceImage && (
+                    <div className="row g-2">
+                      <div className="col-6">
+                        <button
+                          type="button"
+                          onClick={startCamera}
+                          className="btn btn-outline-primary btn-sm w-100 py-1.5 fw-semibold"
+                        >
+                          📹 Live Camera
+                        </button>
+                      </div>
+                      <div className="col-6">
+                        <label className="btn btn-outline-secondary btn-sm w-100 py-1.5 fw-semibold mb-0 cursor-pointer text-center">
+                          📱 Device Upload
+                          <input type="file" accept="image/*" onChange={handleFileUpload} className="d-none" />
+                        </label>
+                      </div>
                     </div>
-                  </div>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={regLoading}
+                  className="btn btn-primary w-100 py-2.5 rounded-3 fw-bold shadow-sm"
+                >
+                  {regLoading ? (
+                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                  ) : (
+                    <span>Complete Registration & Enter Portal →</span>
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* VIEW 3: FORGOT PASSWORD / OTP RECOVERY */}
+          {viewMode === 'forgot' && (
+            <div>
+              <div className="mb-3">
+                <h6 className="fw-bold text-dark mb-0">Reset Account Password</h6>
+                <p className="small text-muted mb-0">
+                  Choose your preferred verification method to recover your account:
+                </p>
+              </div>
+
+              {/* Method Selector Tabs */}
+              {forgotStep === 1 && (
+                <div className="btn-group w-100 mb-3" role="group">
+                  <button
+                    type="button"
+                    onClick={() => setForgotMethod('email')}
+                    className={`btn btn-sm py-2 fw-semibold ${forgotMethod === 'email' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                  >
+                    📧 Email OTP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForgotMethod('phone_email')}
+                    className={`btn btn-sm py-2 fw-semibold ${forgotMethod === 'phone_email' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                  >
+                    📱 Phone.Email
+                  </button>
                 </div>
               )}
 
-              {/* VIEW 2: DIRECT STUDENT SELF-REGISTRATION */}
-              {viewMode === 'register' && (
-                <div>
-                  <div className="mb-4">
-                    <h3 className="text-sm font-bold text-white">Student Self-Onboarding</h3>
-                    <p className="text-[11px] text-slate-400">
-                      Direct database registration with biometric face template enrollment.
-                    </p>
+              {/* Step 2 Recipient Badge */}
+              {forgotStep === 2 && forgotMethod === 'email' && (
+                <div className="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between mb-3">
+                  <div>
+                    <div className="small text-muted text-uppercase" style={{ fontSize: 11 }}>Code Sent To:</div>
+                    <div className="small fw-bold text-dark">{forgotIdentifier}</div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => { setForgotStep(1); setError(''); setSuccessMsg(''); }}
+                    className="btn btn-link p-0 small text-decoration-none"
+                  >
+                    Change
+                  </button>
+                </div>
+              )}
 
-                  <form onSubmit={handleRegister} className="space-y-3.5 max-h-[520px] overflow-y-auto pr-1">
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">
-                          First Name
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="John"
-                          className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-950/80 border-white/15"
-                          value={regFirstName}
-                          onChange={(e) => setRegFirstName(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">
-                          Last Name
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Doe"
-                          className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-950/80 border-white/15"
-                          value={regLastName}
-                          onChange={(e) => setRegLastName(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">
-                          Institute Email
+              {/* METHOD 1: EMAIL OTP */}
+              {forgotMethod === 'email' && (
+                <>
+                  {forgotStep === 1 && (
+                    <form onSubmit={handleRequestOtp} className="space-y-3">
+                      <div className="mb-3">
+                        <label className="form-label small fw-semibold text-secondary mb-1">
+                          Registered Email Address
                         </label>
                         <input
                           type="email"
                           required
-                          placeholder="student@univ.edu"
-                          className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-950/80 border-white/15"
-                          value={regEmail}
-                          onChange={(e) => setRegEmail(e.target.value)}
+                          placeholder="student@aec.ac.in"
+                          className="form-control rounded-3"
+                          value={forgotIdentifier}
+                          onChange={(e) => setForgotIdentifier(e.target.value)}
                         />
+                        <div className="text-muted mt-1" style={{ fontSize: 11 }}>
+                          A 6-digit verification code will be sent to your inbox.
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">
-                          Phone Number (for OTP)
-                        </label>
-                        <input
-                          type="tel"
-                          placeholder="+91 9876543210"
-                          className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-950/80 border-white/15"
-                          value={regPhone}
-                          onChange={(e) => setRegPhone(e.target.value)}
-                        />
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">
-                          Roll / Enrollment No
-                        </label>
+                      <button
+                        type="submit"
+                        disabled={forgotLoading}
+                        className="btn btn-primary w-100 py-2.5 rounded-3 fw-bold shadow-sm"
+                      >
+                        {forgotLoading ? (
+                          <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        ) : (
+                          <span>Send Verification OTP →</span>
+                        )}
+                      </button>
+                    </form>
+                  )}
+
+                  {forgotStep === 2 && (
+                    <form onSubmit={handleResetPassword} className="space-y-3">
+                      <div className="mb-2">
+                        <label className="form-label small fw-semibold text-secondary mb-1">6-Digit OTP</label>
                         <input
                           type="text"
                           required
-                          placeholder="AEC-MCA-2026-001"
-                          className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-950/80 border-white/15"
-                          value={regEnrollmentNo}
-                          onChange={(e) => setRegEnrollmentNo(e.target.value)}
+                          maxLength={6}
+                          placeholder="123456"
+                          className="form-control text-center font-monospace fs-5 rounded-3"
+                          value={forgotOtp}
+                          onChange={(e) => setForgotOtp(e.target.value)}
                         />
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">
-                          Semester
-                        </label>
-                        <select
-                          className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-950/80 border-white/15"
-                          value={regSemester}
-                          onChange={(e) => setRegSemester(Number(e.target.value))}
-                        >
-                          <option value={1} className="bg-slate-900 text-white">Semester 1</option>
-                          <option value={2} className="bg-slate-900 text-white">Semester 2</option>
-                          <option value={3} className="bg-slate-900 text-white">Semester 3</option>
-                          <option value={4} className="bg-slate-900 text-white">Semester 4</option>
-                          <option value={5} className="bg-slate-900 text-white">Semester 5</option>
-                          <option value={6} className="bg-slate-900 text-white">Semester 6</option>
-                        </select>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">
-                          Password
-                        </label>
+                      <div className="mb-2">
+                        <label className="form-label small fw-semibold text-secondary mb-1">New Password</label>
                         <input
                           type="password"
                           required
-                          placeholder="••••••••"
-                          className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-950/80 border-white/15"
-                          value={regPassword}
-                          onChange={(e) => setRegPassword(e.target.value)}
+                          placeholder="••••••••••••"
+                          className="form-control rounded-3"
+                          value={forgotNewPassword}
+                          onChange={(e) => setForgotNewPassword(e.target.value)}
                         />
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 uppercase mb-1">
-                          Confirm Password
-                        </label>
+
+                      <div className="mb-3">
+                        <label className="form-label small fw-semibold text-secondary mb-1">Confirm New Password</label>
                         <input
                           type="password"
                           required
-                          placeholder="••••••••"
-                          className="glass-input w-full px-3 py-2 rounded-xl text-xs text-white bg-slate-950/80 border-white/15"
-                          value={regConfirmPassword}
-                          onChange={(e) => setRegConfirmPassword(e.target.value)}
+                          placeholder="••••••••••••"
+                          className="form-control rounded-3"
+                          value={forgotConfirmPassword}
+                          onChange={(e) => setForgotConfirmPassword(e.target.value)}
                         />
                       </div>
-                    </div>
 
-                    {/* Biometric Face Template Capture */}
-                    <div className="p-3 rounded-2xl bg-slate-950/60 border border-white/10 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-sky-300 uppercase">
-                          📷 Biometric Face Enrollment
-                        </span>
-                        {regFaceImage && (
-                          <span className="text-[10px] text-emerald-400 font-semibold">✓ Photo Ready</span>
-                        )}
-                      </div>
-
-                      {/* Video viewfinder */}
-                      {isCameraActive && (
-                        <div className="relative rounded-xl overflow-hidden aspect-video bg-black flex items-center justify-center border border-sky-400/30">
-                          <video
-                            ref={(el) => {
-                              videoRef.current = el;
-                              if (el && streamRef.current && el.srcObject !== streamRef.current) {
-                                el.srcObject = streamRef.current;
-                                el.play().catch(() => {});
-                              }
-                            }}
-                            onLoadedMetadata={(e) => {
-                              e.currentTarget.play().catch(() => {});
-                            }}
-                            className="w-full h-full object-cover"
-                            autoPlay
-                            playsInline
-                            muted
-                          />
-                          <div className="absolute inset-0 border-2 border-dashed border-sky-400/50 rounded-full w-36 h-48 m-auto pointer-events-none"></div>
-                          <div className="absolute bottom-2 flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={capturePhoto}
-                              className="px-4 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs shadow-lg active:scale-95 transition-all"
-                            >
-                              Capture Frame
-                            </button>
-                            <button
-                              type="button"
-                              onClick={stopCamera}
-                              className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-medium text-xs border border-white/10"
-                            >
-                              Close
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Photo preview */}
-                      {regFaceImage && !isCameraActive && (
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={regFaceImage}
-                            alt="Biometric Preview"
-                            className="w-16 h-16 rounded-xl object-cover border-2 border-sky-400 shadow-md"
-                          />
-                          <div>
-                            <span className="text-[11px] text-slate-300 block font-medium">Face Biometrics Attached</span>
-                            <div className="flex items-center gap-2 mt-1">
-                              <button
-                                type="button"
-                                onClick={() => { setRegFaceImage(null); startCamera(); }}
-                                className="text-[10px] text-sky-400 hover:underline font-bold"
-                              >
-                                Retake via Camera
-                              </button>
-                              <span className="text-slate-600">•</span>
-                              <label className="text-[10px] text-sky-400 hover:underline font-bold cursor-pointer">
-                                Re-upload
-                                <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Always available camera & upload actions */}
-                      {!regFaceImage && (
-                        <div className="space-y-2 pt-1">
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={startCamera}
-                              className="py-2 px-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-xs font-semibold text-sky-200 transition-colors flex items-center justify-center gap-1.5"
-                            >
-                              <span>📹</span> Live Camera
-                            </button>
-                            <label className="py-2 px-3 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-xs font-semibold text-indigo-200 text-center cursor-pointer transition-colors flex items-center justify-center gap-1.5">
-                              <span>📱</span> Phone Selfie
-                              <input type="file" accept="image/*" capture="user" onChange={handleFileUpload} className="hidden" />
-                            </label>
-                          </div>
-                          <label className="block w-full py-1.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-medium text-slate-400 text-center cursor-pointer transition-colors">
-                            📁 Choose Photo from Gallery / Device
-                            <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-                          </label>
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={regLoading}
-                      className="shimmer-btn glass-btn w-full py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg mt-3 disabled:opacity-50"
-                    >
-                      {regLoading ? (
-                        <span className="inline-flex items-center gap-2">
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                          Registering Student...
-                        </span>
-                      ) : (
-                        <span>Complete Registration & Enter Portal →</span>
-                      )}
-                    </button>
-                  </form>
-                </div>
+                      <button
+                        type="submit"
+                        disabled={forgotLoading}
+                        className="btn btn-primary w-100 py-2.5 rounded-3 fw-bold shadow-sm"
+                      >
+                        {forgotLoading ? 'Verifying...' : 'Set New Password & Sign In'}
+                      </button>
+                    </form>
+                  )}
+                </>
               )}
 
-              {/* VIEW 3: FORGOT PASSWORD / OTP RECOVERY */}
-              {viewMode === 'forgot' && (
+              {/* METHOD 2: PHONE.EMAIL VERIFICATION */}
+              {forgotMethod === 'phone_email' && (
                 <div>
-                  <div className="mb-4">
-                    <h3 className="text-sm font-bold text-white">Reset Account Password</h3>
-                    <p className="text-[11px] text-slate-400">
-                      Choose your preferred verification method to recover your account:
-                    </p>
-                  </div>
-
-                  {/* Method Selector Tabs (Only on Step 1) */}
-                  {forgotStep === 1 && (
-                    <div className="grid grid-cols-2 gap-2 p-1 bg-white/5 rounded-xl border border-white/10 mb-4">
-                      <button
-                        type="button"
-                        onClick={() => { setForgotMethod('email'); }}
-                        className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
-                          forgotMethod === 'email'
-                            ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        📧 Email OTP
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setForgotMethod('phone_email'); }}
-                        className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all ${
-                          forgotMethod === 'phone_email'
-                            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        📱 Phone.Email
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Step 2 Recipient Badge */}
-                  {forgotStep === 2 && forgotMethod === 'email' && (
-                    <div className="mb-4 p-3 rounded-xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-between">
-                      <div>
-                        <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Verification Code Sent To</div>
-                        <div className="text-xs font-semibold text-white truncate max-w-[190px] sm:max-w-xs">{forgotIdentifier}</div>
+                  {!phoneEmailVerifiedUrl ? (
+                    <div className="p-3 bg-light rounded-3 border text-center">
+                      <p className="small text-muted mb-2">
+                        Verify your phone number with 1-click using the Phone.Email widget:
+                      </p>
+                      <div className="d-flex justify-content-center py-2">
+                        <div
+                          className="pe_signin_button"
+                          data-client-id="18664955320259466526"
+                        ></div>
                       </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handlePhoneEmailResetPassword} className="space-y-3">
+                      <div className="alert alert-success small py-2 mb-3">
+                        Phone Verified Successfully! Enter your new password:
+                      </div>
+
+                      <div className="mb-2">
+                        <label className="form-label small fw-semibold text-secondary mb-1">New Password</label>
+                        <input
+                          type="password"
+                          required
+                          placeholder="••••••••••••"
+                          className="form-control rounded-3"
+                          value={forgotNewPassword}
+                          onChange={(e) => setForgotNewPassword(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label small fw-semibold text-secondary mb-1">Confirm Password</label>
+                        <input
+                          type="password"
+                          required
+                          placeholder="••••••••••••"
+                          className="form-control rounded-3"
+                          value={forgotConfirmPassword}
+                          onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                        />
+                      </div>
+
                       <button
-                        type="button"
-                        onClick={() => { setForgotStep(1); setError(''); setSuccessMsg(''); }}
-                        className="text-xs text-sky-400 hover:text-sky-300 font-bold underline cursor-pointer"
+                        type="submit"
+                        disabled={forgotLoading}
+                        className="btn btn-primary w-100 py-2.5 rounded-3 fw-bold shadow-sm"
                       >
-                        Change
+                        {forgotLoading ? 'Updating Password...' : 'Save New Password & Sign In'}
                       </button>
-                    </div>
-                  )}
-
-                  {/* METHOD 1: EMAIL OTP */}
-                  {forgotMethod === 'email' && (
-                    <>
-                      {forgotStep === 1 && (
-                        <form onSubmit={handleRequestOtp} className="space-y-4">
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                              Registered Email Address
-                            </label>
-                            <input
-                              type="email"
-                              required
-                              placeholder="e.g. student@aec.ac.in"
-                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-slate-950/80 border-white/15"
-                              value={forgotIdentifier}
-                              onChange={(e) => setForgotIdentifier(e.target.value)}
-                            />
-                            <p className="text-[11px] text-slate-500 mt-1">
-                              A 6-digit verification code will be sent to your inbox. Valid for 5 minutes.
-                            </p>
-                          </div>
-
-                          <button
-                            type="submit"
-                            disabled={forgotLoading}
-                            className="shimmer-btn glass-btn w-full py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
-                          >
-                            {forgotLoading ? (
-                              <span className="inline-flex items-center gap-2">
-                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                                Sending Email OTP...
-                              </span>
-                            ) : (
-                              <span>Send Verification OTP →</span>
-                            )}
-                          </button>
-                        </form>
-                      )}
-
-                      {forgotStep === 2 && (
-                        <form onSubmit={handleResetPassword} className="space-y-3.5">
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                              6-Digit OTP Code
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              maxLength={6}
-                              placeholder="123456"
-                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm font-mono text-center tracking-widest text-sky-300 bg-slate-950/80 border-white/15"
-                              value={forgotOtp}
-                              onChange={(e) => setForgotOtp(e.target.value)}
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                              New Password
-                            </label>
-                            <input
-                              type="password"
-                              required
-                              placeholder="••••••••••••"
-                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white bg-slate-950/80 border-white/15"
-                              value={forgotNewPassword}
-                              onChange={(e) => setForgotNewPassword(e.target.value)}
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                              Confirm New Password
-                            </label>
-                            <input
-                              type="password"
-                              required
-                              placeholder="••••••••••••"
-                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white bg-slate-950/80 border-white/15"
-                              value={forgotConfirmPassword}
-                              onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                            />
-                          </div>
-
-                          <div className="flex items-center gap-2 pt-2">
-                            <button
-                              type="button"
-                              onClick={() => setForgotStep(1)}
-                              className="px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-300 border border-white/10"
-                            >
-                              Back
-                            </button>
-                            <button
-                              type="submit"
-                              disabled={forgotLoading}
-                              className="shimmer-btn glass-btn flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
-                            >
-                              {forgotLoading ? 'Verifying...' : 'Set New Password & Sign In'}
-                            </button>
-                          </div>
-
-                          <div className="text-center pt-2">
-                            <button
-                              type="button"
-                              disabled={forgotLoading}
-                              onClick={handleRequestOtp}
-                              className="text-xs text-slate-400 hover:text-sky-300 transition-colors"
-                            >
-                              Didn't receive email? <span className="underline font-bold text-sky-400">Resend OTP</span>
-                            </button>
-                          </div>
-                        </form>
-                      )}
-                    </>
-                  )}
-
-                  {/* METHOD 2: PHONE.EMAIL VERIFICATION */}
-                  {forgotMethod === 'phone_email' && (
-                    <div className="space-y-4">
-                      {!phoneEmailVerifiedUrl ? (
-                        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-3">
-                          <p className="text-xs text-emerald-200">
-                            Verify your phone number with 1-click using the Phone.Email widget:
-                          </p>
-                          <div className="flex justify-center py-2">
-                            <div
-                              className="pe_signin_button"
-                              data-client-id="18664955320259466526"
-                            ></div>
-                          </div>
-                          <p className="text-[11px] text-slate-400">
-                            Once verified, you will be prompted to set your new password immediately.
-                          </p>
-                        </div>
-                      ) : (
-                        <form onSubmit={handlePhoneEmailResetPassword} className="space-y-3.5">
-                          <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 font-medium">
-                            <span>✅</span>
-                            <span>Phone Verified Successfully! Set your new password:</span>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                              New Password
-                            </label>
-                            <input
-                              type="password"
-                              required
-                              placeholder="••••••••••••"
-                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white bg-slate-950/80 border-white/15"
-                              value={forgotNewPassword}
-                              onChange={(e) => setForgotNewPassword(e.target.value)}
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                              Confirm New Password
-                            </label>
-                            <input
-                              type="password"
-                              required
-                              placeholder="••••••••••••"
-                              className="glass-input w-full px-4 py-2.5 rounded-xl text-sm text-white bg-slate-950/80 border-white/15"
-                              value={forgotConfirmPassword}
-                              onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                            />
-                          </div>
-
-                          <div className="flex items-center gap-2 pt-2">
-                            <button
-                              type="button"
-                              onClick={() => setPhoneEmailVerifiedUrl(null)}
-                              className="px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-300 border border-white/10"
-                            >
-                              Re-verify Phone
-                            </button>
-                            <button
-                              type="submit"
-                              disabled={forgotLoading}
-                              className="shimmer-btn glass-btn flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
-                            >
-                              {forgotLoading ? 'Updating Password...' : 'Save New Password & Sign In'}
-                            </button>
-                          </div>
-                        </form>
-                      )}
-                    </div>
+                    </form>
                   )}
                 </div>
               )}
-
             </div>
-          </div>
+          )}
 
         </div>
       </main>
 
       {/* Footer Branding */}
-      <footer className="relative z-10 w-full px-4 sm:px-8 py-3.5 border-t border-white/5 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <span>Smart Attendance Management System • Universal University Architecture</span>
-        <span className="font-mono text-[11px] text-slate-400">GPS Testing Anchor: 26.140537, 91.656738</span>
+      <footer className="bg-white border-top py-3 text-center text-muted small">
+        <div className="container d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2">
+          <span>Assam Engineering College • Attendance Management System</span>
+          <span className="text-secondary">Department of Computer Applications</span>
+        </div>
       </footer>
     </div>
   );
