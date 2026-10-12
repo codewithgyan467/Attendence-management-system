@@ -282,8 +282,8 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="min-vh-100 bg-light py-4 text-dark">
-      <div className="container" style={{ maxWidth: 1040 }}>
+    <div className="min-vh-100 bg-light py-2.5 py-sm-4 px-1 px-sm-2 text-dark">
+      <div className="container px-2 px-sm-3" style={{ maxWidth: 1040 }}>
         
         {/* Missing Photo Alert Banner */}
         {userProfile && !userProfile.studentProfile?.faceProfile?.imageUrl && (

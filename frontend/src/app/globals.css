@@ -113,6 +113,64 @@ body {
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-fade-in-up {
   animation: fadeInSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* Mobile & Touch Responsiveness Enhancements */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom sleek scrollbar for horizontal tabs & tables on touch devices */
+.overflow-x-auto::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track,
+.table-responsive::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover,
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 576px) {
+  .btn {
+    font-size: 0.825rem;
+  }
+  .card-body {
+    padding: 1rem !important;
+  }
 }

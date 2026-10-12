@@ -288,11 +288,11 @@ export default function AttendanceRegisterView({ isAdmin = false }: AttendanceRe
 
       {/* Main Tabs (Admin has Register vs Everyday Master Report) */}
       {isAdmin && (
-        <ul className="nav nav-pills bg-white p-1.5 rounded-4 shadow-sm border mb-4 d-inline-flex">
+        <ul className="nav nav-pills bg-white p-1.5 rounded-4 shadow-sm border mb-4 d-inline-flex flex-nowrap overflow-x-auto mw-100">
           <li className="nav-item">
             <button
               onClick={() => setActiveMainTab('register')}
-              className={`nav-link rounded-pill px-4 py-2 fw-semibold small ${
+              className={`nav-link rounded-pill px-3 px-sm-4 py-2 fw-semibold small whitespace-nowrap ${
                 activeMainTab === 'register' ? 'active bg-primary text-white shadow-sm' : 'text-secondary'
               }`}
             >
@@ -305,7 +305,7 @@ export default function AttendanceRegisterView({ isAdmin = false }: AttendanceRe
                 setActiveMainTab('dailyMaster');
                 if (token) fetchDailyMaster(token, selectedDate);
               }}
-              className={`nav-link rounded-pill px-4 py-2 fw-semibold small ${
+              className={`nav-link rounded-pill px-3 px-sm-4 py-2 fw-semibold small whitespace-nowrap ${
                 activeMainTab === 'dailyMaster' ? 'active bg-primary text-white shadow-sm' : 'text-secondary'
               }`}
             >

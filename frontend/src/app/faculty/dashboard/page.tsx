@@ -135,8 +135,7 @@ export default function FacultyDashboard() {
   const pendingCount = roster.filter(r => r.status === 'PENDING').length;
 
   return (
-    <div className="min-vh-100 bg-light py-4 text-dark">
-      <div className="container" style={{ maxWidth: 1040 }}>
+    <div className="text-dark">
         
         {/* Interactive Faculty Profile Header Card */}
         <div className="card shadow-sm border-0 rounded-4 mb-4 bg-white">
@@ -367,6 +366,5 @@ export default function FacultyDashboard() {
         </div>
 
       </div>
-    </div>
   );
 }

@@ -519,11 +519,11 @@ export default function UsersManagement() {
 
       {/* ================= EDIT USER MODAL ================= */}
       {editingUser && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-xl rounded-2xl bg-slate-900 border border-sky-500/30 p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-slate-900 border border-sky-500/30 p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 sm:pb-4">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                   <span>✎</span> Edit User Profile
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">Editing credentials and academic records for {editingUser.email}</p>
@@ -537,7 +537,7 @@ export default function UsersManagement() {
             </div>
 
             <form onSubmit={handleUpdateUserSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">First Name</label>
                   <input
@@ -560,7 +560,7 @@ export default function UsersManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Institutional Email</label>
                   <input
@@ -583,7 +583,7 @@ export default function UsersManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">System Role</label>
                   <select
@@ -610,7 +610,7 @@ export default function UsersManagement() {
               {/* Student Specific Fields */}
               <div className="p-3 rounded-xl bg-sky-950/30 border border-sky-500/20 space-y-3">
                 <span className="text-[11px] font-bold text-sky-300 uppercase block">Student Academic Details</span>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div>
                     <label className="text-[11px] text-slate-400 block mb-1">Enrollment / Roll No</label>
                     <input
@@ -689,11 +689,11 @@ export default function UsersManagement() {
 
       {/* ================= SEMESTER PROGRESSION MODAL ================= */}
       {showPromoteModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-xl rounded-2xl bg-slate-900 border border-purple-500/40 p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-slate-900 border border-purple-500/40 p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 sm:pb-4">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                   <span>🎓</span> Institutional Semester Progression Engine
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">Automated semester rollover & cohort promotion tool</p>
@@ -707,7 +707,7 @@ export default function UsersManagement() {
             </div>
 
             {/* Visual Workflow */}
-            <div className="p-3.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-xs text-purple-200 space-y-2">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-xs text-purple-200 space-y-2">
               <span className="font-bold uppercase tracking-wider text-[11px] text-purple-300">Automated Progression Hierarchy:</span>
               <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
                 <span className="bg-purple-500/20 px-2 py-0.5 rounded">Sem 1 ➔ Sem 2</span>
@@ -727,7 +727,7 @@ export default function UsersManagement() {
             <form onSubmit={handlePromoteSubmit} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-slate-300 block mb-2">Progression Mode</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setPromoteMode('ALL')}
@@ -815,11 +815,11 @@ export default function UsersManagement() {
 
       {/* ================= ADD USER MODAL ================= */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-xl rounded-2xl bg-slate-900 border border-indigo-500/30 p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-slate-900 border border-indigo-500/30 p-4 sm:p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 sm:pb-4">
               <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                   <span>👤</span> Register New User Profile
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">Creates a new institutional credential record in the database</p>
@@ -833,7 +833,7 @@ export default function UsersManagement() {
             </div>
 
             <form onSubmit={handleCreateUserSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">First Name</label>
                   <input
@@ -856,7 +856,7 @@ export default function UsersManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Email</label>
                   <input
@@ -879,7 +879,7 @@ export default function UsersManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Role</label>
                   <select
@@ -909,7 +909,7 @@ export default function UsersManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Roll / Enrollment No (Student)</label>
                   <input

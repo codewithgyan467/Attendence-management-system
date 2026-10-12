@@ -455,8 +455,8 @@ export default function LoginPage() {
       )}
 
       {/* Main Authentication Card */}
-      <main className="container my-auto py-4" style={{ maxWidth: 540 }}>
-        <div className="card shadow-sm border-0 rounded-4 bg-white p-4 p-md-5">
+      <main className="container my-auto py-3 py-sm-4 px-3" style={{ maxWidth: 540 }}>
+        <div className="card shadow-sm border-0 rounded-4 bg-white p-3 p-sm-4 p-md-5">
           
           <div className="text-center mb-4">
             <h3 className="fw-bold text-dark mb-1">Attendance Portal</h3>

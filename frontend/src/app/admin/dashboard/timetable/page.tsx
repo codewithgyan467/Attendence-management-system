@@ -369,11 +369,11 @@ export default function TimetableManagement() {
       </div>
 
       {/* Navigation Tabs */}
-      <ul className="nav nav-pills bg-white p-2 rounded-4 shadow-sm border mb-4">
+      <ul className="nav nav-pills bg-white p-2 rounded-4 shadow-sm border mb-4 overflow-x-auto flex-nowrap">
         <li className="nav-item">
           <button
             onClick={() => setActiveTab('timetable')}
-            className={`nav-link rounded-3 fw-semibold small ${activeTab === 'timetable' ? 'active bg-primary text-white shadow-sm' : 'text-secondary'}`}
+            className={`nav-link rounded-3 fw-semibold small whitespace-nowrap ${activeTab === 'timetable' ? 'active bg-primary text-white shadow-sm' : 'text-secondary'}`}
           >
             🗓️ Routine & Timetable ({timetable.length} slots)
           </button>
@@ -381,7 +381,7 @@ export default function TimetableManagement() {
         <li className="nav-item">
           <button
             onClick={() => setActiveTab('assignments')}
-            className={`nav-link rounded-3 fw-semibold small ${activeTab === 'assignments' ? 'active bg-primary text-white shadow-sm' : 'text-secondary'}`}
+            className={`nav-link rounded-3 fw-semibold small whitespace-nowrap ${activeTab === 'assignments' ? 'active bg-primary text-white shadow-sm' : 'text-secondary'}`}
           >
             👨‍🏫 Teacher Course Assignments ({courseAssignments.length} courses)
           </button>
@@ -389,7 +389,7 @@ export default function TimetableManagement() {
         <li className="nav-item">
           <button
             onClick={() => setActiveTab('syllabus')}
-            className={`nav-link rounded-3 fw-semibold small ${activeTab === 'syllabus' ? 'active bg-primary text-white shadow-sm' : 'text-secondary'}`}
+            className={`nav-link rounded-3 fw-semibold small whitespace-nowrap ${activeTab === 'syllabus' ? 'active bg-primary text-white shadow-sm' : 'text-secondary'}`}
           >
             📚 Subjects & Syllabus ({subjects.length})
           </button>
@@ -397,7 +397,7 @@ export default function TimetableManagement() {
         <li className="nav-item">
           <button
             onClick={() => setActiveTab('terms')}
-            className={`nav-link rounded-3 fw-semibold small ${activeTab === 'terms' ? 'active bg-primary text-white shadow-sm' : 'text-secondary'}`}
+            className={`nav-link rounded-3 fw-semibold small whitespace-nowrap ${activeTab === 'terms' ? 'active bg-primary text-white shadow-sm' : 'text-secondary'}`}
           >
             ⏰ Academic Terms ({terms.length})
           </button>
