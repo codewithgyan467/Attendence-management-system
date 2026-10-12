@@ -654,32 +654,77 @@ export class AttendanceService {
         }
       }
 
-      // 6. Facial Liveness & Match Verification (Fail-Secure)
+      // 6. Facial Liveness & 1:1 Biometric Verification (Fail-Secure via MediaPipe + ArcFace)
       if ((data as any).base64Image) {
         try {
           const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000';
-          const aiRes = await fetch(`${aiServiceUrl}/verify/liveness`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              student_id: data.studentProfileId,
-              image_base64: (data as any).base64Image
-            }),
-            signal: AbortSignal.timeout(4000)
-          });
           
-          if (!aiRes.ok) {
-            const errBody: any = await aiRes.json().catch(() => ({}));
-            throw new BadRequestException(errBody.detail || 'LIVENESS_FAILED: Verification rejected by AI vision service');
-          }
+          const studentProfile = await this.prisma.studentProfile.findUnique({
+            where: { id: data.studentProfileId },
+            include: { faceProfile: true }
+          });
 
-          const aiData = await aiRes.json();
-          if (!aiData.is_live) {
-            throw new BadRequestException('LIVENESS_FAILED: Real person required. Photo/screen spoofing rejected.');
+          if (studentProfile?.faceProfile?.imageUrl) {
+            // 1:1 Identity Matching with Enrolled Reference Face Photo
+            const aiRes = await fetch(`${aiServiceUrl}/verify-face`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                student_id: data.studentProfileId,
+                live_image_base64: (data as any).base64Image,
+                reference_image_base64: studentProfile.faceProfile.imageUrl
+              }),
+              signal: AbortSignal.timeout(6000)
+            });
+
+            if (!aiRes.ok) {
+              const errBody: any = await aiRes.json().catch(() => ({}));
+              throw new BadRequestException(errBody.detail || 'BIOMETRIC_FAILED: Verification rejected by AI vision service');
+            }
+
+            const aiData = await aiRes.json();
+            if (!aiData.liveness) {
+              throw new BadRequestException('LIVENESS_FAILED: Real person required. Photo/screen spoofing rejected.');
+            }
+            if (!aiData.faceMatch && !aiData.reviewRequired) {
+              throw new BadRequestException('IDENTITY_MISMATCH: Live face does not match the enrolled student profile photo.');
+            }
+
+            aiLivenessScore = aiData.livenessScore ?? 1.0;
+            aiFaceScore = aiData.faceScore ?? 1.0;
+
+            if (aiData.reviewRequired) {
+              finalStatus = 'REVIEW_REQUIRED';
+              riskFlag = 'BORDERLINE_BIOMETRIC_MATCH_SCORE';
+            } else {
+              finalStatus = 'PRESENT';
+            }
+          } else {
+            // Fallback for students whose reference photo is not yet enrolled
+            const aiRes = await fetch(`${aiServiceUrl}/verify/liveness`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                student_id: data.studentProfileId,
+                image_base64: (data as any).base64Image
+              }),
+              signal: AbortSignal.timeout(4000)
+            });
+
+            if (!aiRes.ok) {
+              const errBody: any = await aiRes.json().catch(() => ({}));
+              throw new BadRequestException(errBody.detail || 'LIVENESS_FAILED: Verification rejected by AI vision service');
+            }
+
+            const aiData = await aiRes.json();
+            if (!aiData.is_live) {
+              throw new BadRequestException('LIVENESS_FAILED: Real person required. Photo/screen spoofing rejected.');
+            }
+            aiLivenessScore = aiData.liveness_score ?? 1.0;
+            aiFaceScore = aiData.face_score ?? 1.0;
+            finalStatus = 'PRESENT';
+            riskFlag = 'UNENROLLED_REFERENCE_PHOTO';
           }
-          aiLivenessScore = aiData.liveness_score ?? 1.0;
-          aiFaceScore = aiData.face_score ?? 1.0;
-          finalStatus = 'PRESENT';
         } catch (e: any) {
           if (e instanceof BadRequestException) throw e;
           // Fail-Secure Security Policy: If AI service is unavailable, do NOT mark PRESENT

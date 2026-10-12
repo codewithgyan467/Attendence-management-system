@@ -40,9 +40,13 @@ def health_check():
         "service": "AEC MCA AI Verification Microservice",
         "version": "2.0.0",
         "models": {
-            "face_detector": "HaarCascade FrontalFace",
-            "feature_extractor": "Spatial LBP Gradient 512-D",
-            "anti_spoofing": "Texture-Spectrum & Frequency PAD"
+            "face_detectors": [
+                "Google MediaPipe BlazeFace (LiteRT / 6 Keypoints)",
+                "OpenCV YuNet Deep Neural Network (5 Landmarks)",
+                "OpenCV Frontal Face Haar Cascade Fallback"
+            ],
+            "feature_extractor": "ArcFace ResNet 512-D ONNX (Additive Angular Margin)",
+            "anti_spoofing": "Multi-Spectral Texture & Chromatic PAD"
         }
     }
 

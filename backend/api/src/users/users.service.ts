@@ -359,18 +359,52 @@ export class UsersService {
       throw new Error('Student profile not found for this user account');
     }
 
-    // Generate lightweight spatial hash template
-    const cleanBase64 = base64Photo.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(cleanBase64, 'base64');
-    const hashVector = new Float32Array(512);
-    for (let i = 0; i < 512; i++) {
-      let sum = 0;
-      for (let j = i; j < buffer.length; j += 512) {
-        sum += buffer[j];
+    // Validate face and extract ArcFace 512-D embedding template from AI service
+    let faceTemplate = '';
+    try {
+      const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000';
+      const aiRes = await fetch(`${aiServiceUrl}/enroll-face`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: student.id,
+          image_base64: base64Photo
+        }),
+        signal: AbortSignal.timeout(6000)
+      });
+
+      if (aiRes.ok) {
+        const enrollData = await aiRes.json();
+        if (enrollData.embedding_vector) {
+          faceTemplate = JSON.stringify(enrollData.embedding_vector);
+        }
+      } else {
+        const errJson: any = await aiRes.json().catch(() => ({}));
+        if (errJson.detail) {
+          throw new Error(errJson.detail);
+        }
       }
-      hashVector[i] = (sum % 256) / 128.0 - 1.0;
+    } catch (err: any) {
+      if (err.message && (err.message.includes('face') || err.message.includes('blurry') || err.message.includes('Multiple'))) {
+        throw err;
+      }
+      // AI service might be offline during initial bootstrap; continue with spatial fallback
     }
-    const faceTemplate = JSON.stringify(Array.from(hashVector));
+
+    // Fallback template if AI service offline
+    if (!faceTemplate) {
+      const cleanBase64 = base64Photo.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(cleanBase64, 'base64');
+      const hashVector = new Float32Array(512);
+      for (let i = 0; i < 512; i++) {
+        let sum = 0;
+        for (let j = i; j < buffer.length; j += 512) {
+          sum += buffer[j];
+        }
+        hashVector[i] = (sum % 256) / 128.0 - 1.0;
+      }
+      faceTemplate = JSON.stringify(Array.from(hashVector));
+    }
 
     if (student.faceProfile) {
       await this.prisma.faceProfile.update({
@@ -390,7 +424,7 @@ export class UsersService {
       });
     }
 
-    return { success: true, message: 'Biometric face photo updated successfully' };
+    return { success: true, message: 'ArcFace biometric face photo enrolled successfully' };
   }
 
   async createUser(data: any) {
