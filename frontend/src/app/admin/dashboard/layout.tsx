@@ -1,63 +1,89 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  const navLinks = [
+    { href: '/admin/dashboard', label: '📊 Overview', exact: true },
+    { href: '/admin/dashboard/institutions', label: '🏛️ Universities & Depts' },
+    { href: '/admin/dashboard/timetable', label: '📅 Timetable & Routine' },
+    { href: '/admin/dashboard/users', label: '👥 User Management' },
+  ];
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+  };
+
   return (
-    <div className="flex flex-col md:flex-row min-h-screen w-full bg-[#070b14] bg-grid-mesh text-slate-100">
-      {/* Responsive Navigation: Top bar on mobile, Sidebar on desktop */}
-      <aside className="w-full md:w-64 glass-panel shrink-0 md:min-h-screen border-b md:border-b-0 md:border-r border-white/10 flex flex-col justify-between">
+    <div className="d-flex flex-column flex-md-row min-vh-100 bg-light text-dark">
+      {/* Sidebar on desktop / topbar on mobile */}
+      <aside 
+        className="bg-white border-end shadow-sm d-flex flex-column justify-content-between p-3"
+        style={{ minWidth: 260, maxWidth: 280 }}
+      >
         <div>
-          {/* Brand header */}
-          <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Control Center</span>
-              <h1 className="text-lg font-bold text-white tracking-tight">Admin Portal</h1>
+          {/* Brand Header */}
+          <div className="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+            <div className="d-flex align-items-center gap-2">
+              <div 
+                className="rounded-3 bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                style={{ width: 36, height: 36, fontSize: 18 }}
+              >
+                A
+              </div>
+              <div>
+                <h6 className="fw-bold mb-0 text-dark">AEC Admin</h6>
+                <span className="small text-muted" style={{ fontSize: 11 }}>Control Center</span>
+              </div>
             </div>
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+              ● Active
+            </span>
           </div>
-          
-          {/* Nav links */}
-          <nav className="p-3 sm:p-4 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible">
-            <Link 
-              href="/admin/dashboard" 
-              className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white/5 hover:bg-white/10 text-slate-200 border border-white/5 hover:border-white/15 transition-all whitespace-nowrap"
-            >
-              📊 Overview
-            </Link>
-            <Link 
-              href="/admin/dashboard/institutions" 
-              className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white/5 hover:bg-white/10 text-slate-200 border border-white/5 hover:border-white/15 transition-all whitespace-nowrap"
-            >
-              🏛️ Universities & Depts
-            </Link>
-            <Link 
-              href="/admin/dashboard/timetable" 
-              className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white/5 hover:bg-white/10 text-slate-200 border border-white/5 hover:border-white/15 transition-all whitespace-nowrap"
-            >
-              📅 Timetable
-            </Link>
-            <Link 
-              href="/admin/dashboard/users" 
-              className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white/5 hover:bg-white/10 text-slate-200 border border-white/5 hover:border-white/15 transition-all whitespace-nowrap"
-            >
-              👥 Users
-            </Link>
+
+          {/* Navigation Links */}
+          <nav className="nav flex-column gap-1">
+            {navLinks.map((link) => {
+              const isActive = link.exact 
+                ? pathname === link.href 
+                : pathname.startsWith(link.href);
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`nav-link px-3 py-2.5 rounded-3 fw-semibold small transition-all ${
+                    isActive
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-secondary hover-bg-light'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
-        
-        {/* Logout bottom action */}
-        <div className="p-3 sm:p-4 border-t border-white/10 hidden md:block">
-          <Link 
-            href="/" 
-            className="block w-full text-center py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 transition-colors"
+
+        {/* Sidebar Footer */}
+        <div className="pt-3 border-top mt-auto">
+          <button
+            onClick={handleLogout}
+            className="btn btn-outline-danger btn-sm w-100 rounded-pill py-2 fw-semibold"
           >
-            Log Out
-          </Link>
+            Sign Out
+          </button>
         </div>
       </aside>
-      
-      {/* Main Content Area */}
-      <main className="flex-1 min-w-0 p-4 sm:p-6 md:p-8 overflow-y-auto">
-        <div className="max-w-6xl mx-auto">
+
+      {/* Main Admin Content Area */}
+      <main className="flex-grow-1 p-3 p-md-4 p-lg-5 overflow-auto">
+        <div className="container-fluid" style={{ maxWidth: 1140 }}>
           {children}
         </div>
       </main>

@@ -64,8 +64,9 @@ export default function FacultyDashboard() {
         const data = await res.json();
         setUserProfile(data);
         if (data.firstName) {
-          setFacultyName(`${data.firstName} ${data.lastName}`);
+          setFacultyName(`${data.firstName} ${data.lastName || ''}`.trim());
         }
+        localStorage.setItem('user', JSON.stringify(data));
       }
     } catch (e) {
       console.error('Failed to load faculty profile:', e);
@@ -74,7 +75,19 @@ export default function FacultyDashboard() {
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
-    if (!storedToken) {
+    const storedUserStr = localStorage.getItem('user');
+
+    if (storedUserStr) {
+      try {
+        const u = JSON.parse(storedUserStr);
+        setUserProfile(u);
+        if (u.firstName) {
+          setFacultyName(`${u.firstName} ${u.lastName || ''}`.trim());
+        }
+      } catch {}
+    }
+
+    if (!storedToken || storedToken === 'undefined' || storedToken === 'null') {
       window.location.href = '/';
       return;
     }
@@ -142,7 +155,9 @@ export default function FacultyDashboard() {
                 <div>
                   <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
                     <h3 className="h4 fw-bold mb-0 text-dark">
-                      {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : facultyName}
+                      {userProfile?.firstName
+                        ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim()
+                        : facultyName}
                     </h3>
                     <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill">
                       👨‍🏫 FACULTY
@@ -157,9 +172,9 @@ export default function FacultyDashboard() {
                   </p>
 
                   <div className="d-flex flex-wrap align-items-center gap-2 small text-secondary font-monospace">
-                    <span>Emp ID: <strong className="text-dark">{userProfile?.facultyProfile?.employeeId || 'FAC-MCA-01'}</strong></span>
+                    <span>Emp ID: <strong className="text-dark">{userProfile?.facultyProfile?.employeeId || '—'}</strong></span>
                     <span>•</span>
-                    <span>Email: <strong className="text-dark">{userProfile?.email || 'faculty@aec.ac.in'}</strong></span>
+                    <span>Email: <strong className="text-dark">{userProfile?.email || '—'}</strong></span>
                     {userProfile?.phone && (
                       <>
                         <span>•</span>

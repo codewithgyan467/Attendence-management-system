@@ -183,13 +183,20 @@ export default function LoginPage() {
         throw new Error(data.message || 'Invalid credentials. Please verify your login details.');
       }
 
-      localStorage.setItem('token', data.accessToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      const token = data.accessToken || data.access_token;
+      if (token) {
+        localStorage.setItem('token', token);
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
 
-      if (data.user.role === 'STUDENT') {
+      if (data.user?.role === 'STUDENT') {
         router.push('/student/dashboard');
-      } else if (data.user.role === 'FACULTY') {
+      } else if (data.user?.role === 'FACULTY') {
         router.push('/faculty/dashboard');
+      } else if (data.user?.role === 'ADMIN') {
+        router.push('/admin/dashboard');
       } else {
         router.push('/student/dashboard');
       }
@@ -240,8 +247,13 @@ export default function LoginPage() {
       }
 
       setSuccessMsg('Registration completed! Signing you into portal...');
-      localStorage.setItem('token', data.accessToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      const token = data.accessToken || data.access_token;
+      if (token) {
+        localStorage.setItem('token', token);
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
 
       setTimeout(() => {
         router.push('/student/dashboard');

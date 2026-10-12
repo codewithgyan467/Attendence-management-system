@@ -29,9 +29,12 @@ export class AuthService {
 
   async login(user: any) {
     const payload = { email: user.email, sub: user.id, role: user.role };
+    const token = this.jwtService.sign(payload);
+    const fullUser = await this.usersService.getMe(user.id);
     return {
-      access_token: this.jwtService.sign(payload),
-      user: {
+      access_token: token,
+      accessToken: token,
+      user: fullUser || {
         id: user.id,
         email: user.email,
         role: user.role,
@@ -233,14 +236,18 @@ export class AuthService {
       return { user, studentProfile };
     });
 
+    const token = this.jwtService.sign({
+      email: result.user.email,
+      sub: result.user.id,
+      role: result.user.role
+    });
+    const fullUser = await this.usersService.getMe(result.user.id);
+
     return {
       message: 'Student account registered successfully! You are now logged in.',
-      access_token: this.jwtService.sign({
-        email: result.user.email,
-        sub: result.user.id,
-        role: result.user.role
-      }),
-      user: {
+      access_token: token,
+      accessToken: token,
+      user: fullUser || {
         id: result.user.id,
         email: result.user.email,
         role: result.user.role,

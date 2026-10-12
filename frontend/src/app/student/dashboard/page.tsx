@@ -56,8 +56,9 @@ export default function StudentDashboard() {
         const data = await res.json();
         setUserProfile(data);
         if (data.firstName) {
-          setStudentName(`${data.firstName} ${data.lastName}`);
+          setStudentName(`${data.firstName} ${data.lastName || ''}`.trim());
         }
+        localStorage.setItem('user', JSON.stringify(data));
         const studentSem = data.studentProfile?.semester || data.semester;
         if (studentSem) {
           fetchSchedule(authToken, simDay, simTime, studentSem);
@@ -71,7 +72,19 @@ export default function StudentDashboard() {
   // Initial load
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
-    if (!storedToken) {
+    const storedUserStr = localStorage.getItem('user');
+
+    if (storedUserStr) {
+      try {
+        const u = JSON.parse(storedUserStr);
+        setUserProfile(u);
+        if (u.firstName) {
+          setStudentName(`${u.firstName} ${u.lastName || ''}`.trim());
+        }
+      } catch {}
+    }
+
+    if (!storedToken || storedToken === 'undefined' || storedToken === 'null') {
       window.location.href = '/';
       return;
     }
@@ -328,10 +341,12 @@ export default function StudentDashboard() {
                 <div>
                   <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
                     <h3 className="h4 fw-bold mb-0 text-dark">
-                      {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : studentName}
+                      {userProfile?.firstName
+                        ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim()
+                        : studentName}
                     </h3>
                     <span className="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">
-                      Semester {userProfile?.studentProfile?.semester || 1}
+                      Semester {userProfile?.studentProfile?.semester || userProfile?.semester || 1}
                     </span>
                     <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
                       {userProfile?.studentProfile?.status || 'ACTIVE'}
@@ -343,9 +358,9 @@ export default function StudentDashboard() {
                   </p>
 
                   <div className="d-flex flex-wrap align-items-center gap-2 small text-secondary font-monospace">
-                    <span>Roll: <strong className="text-dark">{userProfile?.studentProfile?.enrollmentNo || 'AEC-MCA-100'}</strong></span>
+                    <span>Roll: <strong className="text-dark">{userProfile?.studentProfile?.enrollmentNo || userProfile?.enrollmentNo || '—'}</strong></span>
                     <span>•</span>
-                    <span>Email: <strong className="text-dark">{userProfile?.email || 'student@aec.ac.in'}</strong></span>
+                    <span>Email: <strong className="text-dark">{userProfile?.email || '—'}</strong></span>
                     {userProfile?.phone && (
                       <>
                         <span>•</span>
