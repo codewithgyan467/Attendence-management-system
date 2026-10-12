@@ -152,7 +152,12 @@ export class AuthService {
       }
     }
 
-    // Process Biometric Face Template if image provided
+    // Mandatory Biometric Face Photo Check for Student Onboarding
+    if (!dto.faceImage) {
+      throw new BadRequestException('FACE_ENROLLMENT_REQUIRED: Biometric face photo is compulsory for student registration to prevent proxy attendance.');
+    }
+
+    // Process Biometric Face Template via AI vision microservice
     let faceTemplate: string | null = null;
     if (dto.faceImage) {
       try {
@@ -164,15 +169,21 @@ export class AuthService {
             student_id: cleanEnrollment,
             image_base64: dto.faceImage
           }),
-          signal: AbortSignal.timeout(3500)
+          signal: AbortSignal.timeout(5000)
         });
 
         if (aiRes.ok) {
           const aiData: any = await aiRes.json();
           faceTemplate = JSON.stringify(aiData.embedding_vector || []);
+        } else {
+          const errData: any = await aiRes.json().catch(() => ({}));
+          if (errData.detail) {
+            throw new BadRequestException(`BIOMETRIC_REGISTRATION_FAILED: ${errData.detail}`);
+          }
         }
-      } catch (err) {
-        // Fallback: Generate normalized 512-D spatial hash template so user is never blocked
+      } catch (err: any) {
+        if (err instanceof BadRequestException) throw err;
+        // Fallback: Generate normalized 512-D spatial hash template if AI service offline
       }
 
       if (!faceTemplate) {
@@ -211,7 +222,7 @@ export class AuthService {
           data: {
             studentProfileId: studentProfile.id,
             faceTemplate,
-            imageUrl: dto.faceImage ? dto.faceImage.substring(0, 500) : null,
+            imageUrl: dto.faceImage || null,
           }
         });
       }

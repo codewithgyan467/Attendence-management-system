@@ -222,6 +222,11 @@ export default function LoginPage() {
       return;
     }
 
+    if (!regFaceImage) {
+      setError('COMPULSORY BIOMETRIC ENROLLMENT: You must capture or upload your clear face photo to complete registration and prevent proxy attendance.');
+      return;
+    }
+
     setRegLoading(true);
 
     try {
@@ -744,16 +749,23 @@ export default function LoginPage() {
 
                 {/* Biometric Face Template Capture */}
                 <div className="p-3 bg-light rounded-3 border mb-3">
-                  <div className="d-flex align-items-center justify-content-between mb-2">
+                  <div className="d-flex align-items-center justify-content-between mb-1">
                     <span className="small fw-bold text-dark">
-                      📷 Biometric Face Photo Enrollment
+                      📷 Biometric Face Photo Enrollment <span className="text-danger fw-bold">* (Compulsory)</span>
                     </span>
-                    {regFaceImage && (
+                    {regFaceImage ? (
                       <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
                         ✓ Photo Ready
                       </span>
+                    ) : (
+                      <span className="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">
+                        * Required
+                      </span>
                     )}
                   </div>
+                  <p className="text-muted mb-2" style={{ fontSize: 11 }}>
+                    Mandatory for all students. Your face photo will be used for automated 1:1 facial verification during attendance check-in.
+                  </p>
 
                   {/* Video viewfinder */}
                   {isCameraActive && (

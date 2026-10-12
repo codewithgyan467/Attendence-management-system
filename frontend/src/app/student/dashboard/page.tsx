@@ -17,6 +17,8 @@ export default function StudentDashboard() {
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [photoModalActive, setPhotoModalActive] = useState(false);
   const [photoUploadMsg, setPhotoUploadMsg] = useState<string | null>(null);
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [simDay, setSimDay] = useState<number | null>(null);
   const [simTime, setSimTime] = useState<string | null>(null);
   const [simChoice, setSimChoice] = useState('live');
@@ -139,10 +141,55 @@ export default function StudentDashboard() {
     if (token) fetchSchedule(token, day, time, sem);
   };
 
+  const uploadBiometricPhoto = async (compressed: string) => {
+    setPhotoUploadMsg(null);
+    setPhotoUploadError(null);
+    setPhotoUploading(true);
+    try {
+      const res = await fetch(`${API_URL}/users/me/face-photo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ base64Image: compressed })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.message || 'Face enrollment failed. Please hold steady in good lighting with a clear face.');
+      }
+      setPhotoUploadMsg('✓ Biometric face photo enrolled successfully! Attendance verification unlocked.');
+      if (photoModalStreamRef.current) {
+        photoModalStreamRef.current.getTracks().forEach(t => t.stop());
+        photoModalStreamRef.current = null;
+      }
+      setPhotoModalActive(false);
+      if (token) await fetchProfile(token);
+      setTimeout(() => {
+        setShowPhotoModal(false);
+        setPhotoUploadMsg(null);
+        setPhotoUploadError(null);
+        setStatus('idle');
+        setErrorMessage('');
+      }, 1500);
+    } catch (err: any) {
+      setPhotoUploadError(err.message || 'Failed to enroll face photo.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   const startAttendanceProcess = () => {
     if (scheduleData?.isHoliday) {
       setStatus('error');
       setErrorMessage(`Institutional Holiday declared (${scheduleData.holiday?.title}). Attendance is suspended.`);
+      return;
+    }
+
+    if (!userProfile?.studentProfile?.faceProfile?.imageUrl) {
+      setShowPhotoModal(true);
+      setStatus('error');
+      setErrorMessage('BIOMETRIC_ENROLLMENT_REQUIRED: You must register your official face photo before marking attendance to prevent proxy check-ins.');
       return;
     }
 
@@ -287,21 +334,21 @@ export default function StudentDashboard() {
         
         {/* Missing Photo Alert Banner */}
         {userProfile && !userProfile.studentProfile?.faceProfile?.imageUrl && (
-          <div className="alert alert-warning border-warning-subtle shadow-sm rounded-4 mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 p-3 p-md-4">
+          <div className="alert alert-danger border-danger-subtle shadow-sm rounded-4 mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 p-3 p-md-4">
             <div className="d-flex align-items-start gap-3">
-              <span className="fs-3">⚠️</span>
+              <span className="fs-3">🛡️</span>
               <div>
-                <h6 className="alert-heading fw-bold mb-1">Biometric Face Photo Missing</h6>
+                <h6 className="alert-heading fw-bold mb-1 text-danger">Compulsory Action: Biometric Face Photo Registration Required</h6>
                 <p className="mb-0 small text-muted">
-                  Automated attendance verification requires your enrolled face photo. Please upload or capture your photo to avoid verification rejections.
+                  To eliminate proxy attendance and verify your identity, Assam Engineering College requires all students to register their verified face photo. Live attendance marking is locked until your photo is enrolled.
                 </p>
               </div>
             </div>
             <button
-              onClick={() => setShowPhotoModal(true)}
-              className="btn btn-warning text-dark fw-bold btn-sm rounded-pill px-3 py-2 text-nowrap shadow-sm"
+              onClick={() => { setShowPhotoModal(true); setPhotoUploadError(null); setPhotoUploadMsg(null); }}
+              className="btn btn-danger text-white fw-bold btn-sm rounded-pill px-4 py-2 text-nowrap shadow-sm"
             >
-              📸 Upload Photo Now
+              📸 Register Face Photo Now
             </button>
           </div>
         )}
@@ -454,12 +501,29 @@ export default function StudentDashboard() {
 
                 {/* State: Idle */}
                 {status === 'idle' && (
-                  <button 
-                    onClick={startAttendanceProcess} 
-                    className="btn btn-primary btn-lg w-100 py-3 rounded-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
-                  >
-                    <span>📍</span> Mark My Attendance for {scheduleData.slot.code}
-                  </button>
+                  !userProfile?.studentProfile?.faceProfile?.imageUrl ? (
+                    <div className="p-4 bg-danger-subtle border border-danger-subtle rounded-3 text-center">
+                      <div className="h6 fw-bold text-danger mb-1 d-flex align-items-center justify-content-center gap-2">
+                        <span>🔒</span> Attendance Locked: Biometric Face Photo Required
+                      </div>
+                      <p className="small text-muted mb-3">
+                        To prevent proxy check-ins, you must register your official face photo before marking attendance for this lecture.
+                      </p>
+                      <button
+                        onClick={() => { setShowPhotoModal(true); setPhotoUploadError(null); setPhotoUploadMsg(null); }}
+                        className="btn btn-danger btn-lg w-100 py-2.5 rounded-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
+                      >
+                        <span>📸</span> Upload / Capture Face Photo Now to Unlock
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={startAttendanceProcess} 
+                      className="btn btn-primary btn-lg w-100 py-3 rounded-3 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
+                    >
+                      <span>📍</span> Mark My Attendance for {scheduleData.slot.code}
+                    </button>
+                  )
                 )}
 
                 {/* State: Locating */}
@@ -599,6 +663,17 @@ export default function StudentDashboard() {
                     {photoUploadMsg}
                   </div>
                 )}
+                {photoUploadError && (
+                  <div className="alert alert-danger small py-2 mb-3">
+                    {photoUploadError}
+                  </div>
+                )}
+                {photoUploading && (
+                  <div className="alert alert-info small py-2 mb-3 d-flex align-items-center gap-2">
+                    <span className="spinner-border spinner-border-sm" role="status"></span>
+                    <span>Validating face clarity and generating ArcFace biometric template...</span>
+                  </div>
+                )}
 
                 {/* Video Viewfinder */}
                 {photoModalActive && (
@@ -620,6 +695,7 @@ export default function StudentDashboard() {
                     <div className="position-absolute top-50 start-50 translate-middle border border-2 border-primary rounded-circle" style={{ width: 140, height: 180, pointerEvents: 'none' }}></div>
                     <button
                       type="button"
+                      disabled={photoUploading}
                       onClick={async () => {
                         if (!photoModalVideoRef.current) return;
                         const canvas = document.createElement('canvas');
@@ -630,30 +706,12 @@ export default function StudentDashboard() {
                           ctx.drawImage(photoModalVideoRef.current, 0, 0, canvas.width, canvas.height);
                           const raw = canvas.toDataURL('image/jpeg', 0.8);
                           const compressed = await compressImage(raw, 800, 800, 0.75);
-                          
-                          const res = await fetch(`${API_URL}/users/me/face-photo`, {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              Authorization: `Bearer ${token}`
-                            },
-                            body: JSON.stringify({ base64Image: compressed })
-                          });
-                          if (res.ok) {
-                            setPhotoUploadMsg('Photo enrolled successfully!');
-                            if (photoModalStreamRef.current) {
-                              photoModalStreamRef.current.getTracks().forEach(t => t.stop());
-                              photoModalStreamRef.current = null;
-                            }
-                            setPhotoModalActive(false);
-                            if (token) fetchProfile(token);
-                            setTimeout(() => setShowPhotoModal(false), 1200);
-                          }
+                          await uploadBiometricPhoto(compressed);
                         }
                       }}
                       className="position-absolute bottom-0 start-50 translate-middle-x mb-3 btn btn-success btn-sm rounded-pill px-4 fw-bold shadow"
                     >
-                      Capture & Save
+                      {photoUploading ? 'Processing...' : 'Capture & Save'}
                     </button>
                   </div>
                 )}
@@ -664,6 +722,7 @@ export default function StudentDashboard() {
                     <div className="col-6">
                       <button
                         type="button"
+                        disabled={photoUploading}
                         onClick={async () => {
                           try {
                             const stream = await navigator.mediaDevices.getUserMedia({
@@ -685,26 +744,18 @@ export default function StudentDashboard() {
                       </button>
                     </div>
                     <div className="col-6">
-                      <label className="btn btn-outline-secondary btn-sm w-100 py-2 fw-semibold mb-0 cursor-pointer">
+                      <label className={`btn btn-outline-secondary btn-sm w-100 py-2 fw-semibold mb-0 cursor-pointer ${photoUploading ? 'disabled' : ''}`}>
                         📱 Phone Selfie
                         <input
                           type="file"
                           accept="image/*"
                           capture="user"
+                          disabled={photoUploading}
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
                             const compressed = await compressImage(file, 800, 800, 0.75);
-                            const res = await fetch(`${API_URL}/users/me/face-photo`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                              body: JSON.stringify({ base64Image: compressed })
-                            });
-                            if (res.ok) {
-                              setPhotoUploadMsg('Photo enrolled successfully!');
-                              if (token) fetchProfile(token);
-                              setTimeout(() => setShowPhotoModal(false), 1200);
-                            }
+                            await uploadBiometricPhoto(compressed);
                           }}
                           className="d-none"
                         />
@@ -712,25 +763,17 @@ export default function StudentDashboard() {
                     </div>
                   </div>
 
-                  <label className="btn btn-light border btn-sm py-2 fw-medium text-secondary text-center cursor-pointer mb-0">
+                  <label className={`btn btn-light border btn-sm py-2 fw-medium text-secondary text-center cursor-pointer mb-0 ${photoUploading ? 'disabled' : ''}`}>
                     📁 Upload Existing Photo from Gallery
                     <input
                       type="file"
                       accept="image/*"
+                      disabled={photoUploading}
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
                         const compressed = await compressImage(file, 800, 800, 0.75);
-                        const res = await fetch(`${API_URL}/users/me/face-photo`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                          body: JSON.stringify({ base64Image: compressed })
-                        });
-                        if (res.ok) {
-                          setPhotoUploadMsg('Photo enrolled successfully!');
-                          if (token) fetchProfile(token);
-                          setTimeout(() => setShowPhotoModal(false), 1200);
-                        }
+                        await uploadBiometricPhoto(compressed);
                       }}
                       className="d-none"
                     />

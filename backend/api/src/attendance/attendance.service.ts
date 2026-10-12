@@ -664,66 +664,43 @@ export class AttendanceService {
             include: { faceProfile: true }
           });
 
-          if (studentProfile?.faceProfile?.imageUrl) {
-            // 1:1 Identity Matching with Enrolled Reference Face Photo
-            const aiRes = await fetch(`${aiServiceUrl}/verify-face`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                student_id: data.studentProfileId,
-                live_image_base64: (data as any).base64Image,
-                reference_image_base64: studentProfile.faceProfile.imageUrl
-              }),
-              signal: AbortSignal.timeout(6000)
-            });
+          if (!studentProfile?.faceProfile?.imageUrl) {
+            throw new BadRequestException('FACE_ENROLLMENT_REQUIRED: You have not registered your official reference face photo. Please upload your face photo in your student profile to unlock attendance and prevent proxy check-ins.');
+          }
 
-            if (!aiRes.ok) {
-              const errBody: any = await aiRes.json().catch(() => ({}));
-              throw new BadRequestException(errBody.detail || 'BIOMETRIC_FAILED: Verification rejected by AI vision service');
-            }
+          // 1:1 Identity Matching with Enrolled Reference Face Photo (ArcFace + MediaPipe)
+          const aiRes = await fetch(`${aiServiceUrl}/verify-face`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              student_id: data.studentProfileId,
+              live_image_base64: (data as any).base64Image,
+              reference_image_base64: studentProfile.faceProfile.imageUrl
+            }),
+            signal: AbortSignal.timeout(6000)
+          });
 
-            const aiData = await aiRes.json();
-            if (!aiData.liveness) {
-              throw new BadRequestException('LIVENESS_FAILED: Real person required. Photo/screen spoofing rejected.');
-            }
-            if (!aiData.faceMatch && !aiData.reviewRequired) {
-              throw new BadRequestException('IDENTITY_MISMATCH: Live face does not match the enrolled student profile photo.');
-            }
+          if (!aiRes.ok) {
+            const errBody: any = await aiRes.json().catch(() => ({}));
+            throw new BadRequestException(errBody.detail || 'BIOMETRIC_FAILED: Verification rejected by AI vision service');
+          }
 
-            aiLivenessScore = aiData.livenessScore ?? 1.0;
-            aiFaceScore = aiData.faceScore ?? 1.0;
+          const aiData = await aiRes.json();
+          if (!aiData.liveness) {
+            throw new BadRequestException('LIVENESS_FAILED: Real person required. Photo/screen spoofing rejected.');
+          }
+          if (!aiData.faceMatch && !aiData.reviewRequired) {
+            throw new BadRequestException('IDENTITY_MISMATCH: Live face does not match the enrolled student profile photo. Verification failed.');
+          }
 
-            if (aiData.reviewRequired) {
-              finalStatus = 'REVIEW_REQUIRED';
-              riskFlag = 'BORDERLINE_BIOMETRIC_MATCH_SCORE';
-            } else {
-              finalStatus = 'PRESENT';
-            }
+          aiLivenessScore = aiData.livenessScore ?? 1.0;
+          aiFaceScore = aiData.faceScore ?? 1.0;
+
+          if (aiData.reviewRequired) {
+            finalStatus = 'REVIEW_REQUIRED';
+            riskFlag = 'BORDERLINE_BIOMETRIC_MATCH_SCORE';
           } else {
-            // Fallback for students whose reference photo is not yet enrolled
-            const aiRes = await fetch(`${aiServiceUrl}/verify/liveness`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                student_id: data.studentProfileId,
-                image_base64: (data as any).base64Image
-              }),
-              signal: AbortSignal.timeout(4000)
-            });
-
-            if (!aiRes.ok) {
-              const errBody: any = await aiRes.json().catch(() => ({}));
-              throw new BadRequestException(errBody.detail || 'LIVENESS_FAILED: Verification rejected by AI vision service');
-            }
-
-            const aiData = await aiRes.json();
-            if (!aiData.is_live) {
-              throw new BadRequestException('LIVENESS_FAILED: Real person required. Photo/screen spoofing rejected.');
-            }
-            aiLivenessScore = aiData.liveness_score ?? 1.0;
-            aiFaceScore = aiData.face_score ?? 1.0;
             finalStatus = 'PRESENT';
-            riskFlag = 'UNENROLLED_REFERENCE_PHOTO';
           }
         } catch (e: any) {
           if (e instanceof BadRequestException) throw e;
@@ -735,7 +712,7 @@ export class AttendanceService {
           riskFlag = 'AI_SERVICE_UNAVAILABLE_REVIEW_NEEDED';
         }
       } else {
-        finalStatus = 'PRESENT';
+        throw new BadRequestException('FACE_CAPTURE_REQUIRED: Live facial selfie capture is required for attendance verification.');
       }
     }
 
