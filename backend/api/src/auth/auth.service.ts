@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -21,7 +21,7 @@ export class AuthService {
     if (!user) return null;
     const isMatch = await bcrypt.compare(pass, user.password);
     if (isMatch) {
-      const { password, ...result } = user;
+      const { password: _password, ...result } = user;
       return result;
     }
     return null;

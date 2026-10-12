@@ -442,7 +442,7 @@ export class AttendanceService {
     });
   }
 
-  async getSessionAttendance(sessionId: string, facultyProfileId?: string) {
+  async getSessionAttendance(sessionId: string, _facultyProfileId?: string) {
     const session = await this.prisma.classSession.findUnique({
       where: { id: sessionId },
       include: {
@@ -504,10 +504,21 @@ export class AttendanceService {
 
   // --- Student Actions ---
   async getActiveSessionsForStudent(studentProfileId: string) {
-    // Also include auto-resolved timetable session
+    const student = await this.prisma.studentProfile.findUnique({
+      where: { id: studentProfileId },
+      include: { enrollments: true }
+    });
+
+    const enrolledSectionIds = student?.enrollments.map(e => e.sectionId) || [];
+
     const scheduleSession = await this.getLiveScheduleSession();
     const manualSessions = await this.prisma.classSession.findMany({
-      where: { status: 'ACTIVE' },
+      where: {
+        status: 'ACTIVE',
+        ...(enrolledSectionIds.length > 0 ? {
+          timetableEntry: { sectionId: { in: enrolledSectionIds } }
+        } : {})
+      },
       include: {
         classroom: true,
         timetableEntry: {
@@ -516,6 +527,14 @@ export class AttendanceService {
         faculty: { include: { user: true } }
       }
     });
+
+    // If timetable schedule has an active session for student's enrolled section, ensure it is included
+    if (scheduleSession?.active && scheduleSession?.session) {
+      const alreadyIncluded = manualSessions.some(s => s.id === scheduleSession.session.id);
+      if (!alreadyIncluded) {
+        manualSessions.unshift(scheduleSession.session as any);
+      }
+    }
 
     return manualSessions;
   }

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AttendanceService, getISTDate, formatTimeHHMM, formatDateYYYYMMDD } from './attendance.service.js';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { AttendanceService, getISTDate, formatDateYYYYMMDD } from './attendance.service.js';
+import { BadRequestException } from '@nestjs/common';
 
 describe('AttendanceService (Core Business Logic & Rules Engine)', () => {
   let service: AttendanceService;
@@ -216,6 +216,10 @@ describe('AttendanceService (Core Business Logic & Rules Engine)', () => {
         classroom: { latitude: 26.1412, longitude: 91.6620, allowedRadiusMeters: 100 },
       });
       mockPrisma.enrollment.findFirst.mockResolvedValue({ id: 'enr-1' });
+      mockPrisma.studentProfile.findUnique.mockResolvedValue({
+        id: 'stu-1',
+        faceProfile: { imageUrl: 'data:image/jpeg;base64,mockEnrolledRefFace' }
+      });
 
       // AI service fails / connection refused
       const originalFetch = global.fetch;

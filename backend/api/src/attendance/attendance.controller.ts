@@ -54,7 +54,7 @@ export class AttendanceController {
 
   @Roles('FACULTY', 'ADMIN')
   @Get('session/:id/attendance')
-  async getSessionAttendance(@Param('id') sessionId: string, @Request() req: any) {
+  async getSessionAttendance(@Param('id') sessionId: string) {
     return this.attendanceService.getSessionAttendance(sessionId);
   }
 
