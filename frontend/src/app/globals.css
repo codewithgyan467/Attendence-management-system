@@ -1,35 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --bs-body-bg: #f8f9fa;
-  --bs-body-color: #212529;
-  --bs-primary: #0d6efd;
-  --bs-primary-rgb: 13, 110, 253;
-  --bs-secondary: #6c757d;
-  --bs-success: #198754;
-  --bs-info: #0dcaf0;
-  --bs-warning: #ffc107;
-  --bs-danger: #dc3545;
-  --bs-light: #f8f9fa;
-  --bs-dark: #212529;
-  --bs-border-color: #dee2e6;
+  --bs-body-bg: #f5f7fa;
+  --bs-body-color: #31374a;
+  --bs-primary: #3874ff;
+  --bs-primary-rgb: 56, 116, 255;
+  --bs-secondary: #7d899b;
+  --bs-success: #25b865;
+  --bs-info: #00d27a;
+  --bs-warning: #f5803e;
+  --bs-danger: #fa3b3b;
+  --bs-light: #f5f7fa;
+  --bs-dark: #141824;
+  --bs-border-color: #e3e6ed;
+  --phoenix-bg: #f5f7fa;
+  --phoenix-primary: #3874ff;
+  --phoenix-border: #e3e6ed;
 }
 
 body {
-  background-color: #f8f9fa !important;
-  color: #212529 !important;
+  background-color: #f5f7fa !important;
+  color: #31374a !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   min-height: 100vh;
 }
 
-/* Clean Bootstrap Card & Panel Utilities */
+/* Phoenix Clean Card & Panel Utilities */
+.phoenix-card,
 .glass-panel,
 .card-clean {
   background-color: #ffffff !important;
-  border: 1px solid #dee2e6 !important;
+  border: 1px solid #e3e6ed !important;
   border-radius: 0.75rem !important;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05) !important;
-  color: #212529 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
+  color: #31374a !important;
+  transition: all 0.2s ease-in-out;
+}
+
+.phoenix-card:hover {
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.06) !important;
+}
+
+.badge-phoenix-success {
+  background-color: #e8f9ee !important;
+  color: #25b865 !important;
+  border: 1px solid rgba(37, 184, 101, 0.2) !important;
+}
+
+.badge-phoenix-warning {
+  background-color: #fef5ee !important;
+  color: #f5803e !important;
+  border: 1px solid rgba(245, 128, 62, 0.25) !important;
+}
+
+.badge-phoenix-danger {
+  background-color: #feeef0 !important;
+  color: #fa3b3b !important;
+  border: 1px solid rgba(250, 59, 59, 0.25) !important;
+}
+
+.badge-phoenix-primary {
+  background-color: #edf2ff !important;
+  color: #3874ff !important;
+  border: 1px solid rgba(56, 116, 255, 0.25) !important;
 }
 
 .glass-panel-subtle {
